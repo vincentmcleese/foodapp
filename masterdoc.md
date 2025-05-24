@@ -283,9 +283,9 @@ Sprint	Routes & Components	Features Delivered
 6. Sprint Plan (All Backlog & Tech Requirements)
 
 Sprint	Feature / Requirement	Test Focus	Demo Criteria	Status
-1	Basic scaffolding with pages for Meals, Plan, Fridge, Health, Shop; mobile footer navigation and page layouts	Unit & integration tests for routing, rendering, navigation	All scaffold pages render; footer nav shows correct icons/buttons; "Shop" link from Plan opens the Shop page	Planned
-2	Fridge ingredient management (CRUD)	Unit & integration tests for create/read/update/delete operations	User can add, view, edit, and delete ingredients on the Fridge page	Planned
-3	Meal management (CRUD) for meals composed of ingredients	Unit & integration tests for meal CRUD and nutrition calculation	User can create, view, edit, delete meals; nutrition summary updates accordingly	Planned
+1	Basic scaffolding with pages for Meals, Plan, Fridge, Health, Shop; mobile footer navigation and page layouts	Unit & integration tests for routing, rendering, navigation	All scaffold pages render; footer nav shows correct icons/buttons; "Shop" link from Plan opens the Shop page	Completed
+2	Fridge ingredient management (CRUD)	Unit & integration tests for create/read/update/delete operations	User can add, view, edit, and delete ingredients on the Fridge page	Completed
+3	Meal management (CRUD) for meals composed of ingredients	Unit & integration tests for meal CRUD and nutrition calculation	User can create, view, edit, delete meals; nutrition summary updates accordingly	Completed
 4	Weekly meal planning (CRUD)	Unit & integration tests for planning CRUD and calendar interactions	User can plan meals for each day, modify entries, and remove plans	Planned
 5	Health tab: toggle on/off science principles and add new principles	Unit & integration tests for toggle functionality and principle CRUD	Health tab lists principles with working toggles; users can add and enable/disable principles	Planned
 6	Required ingredients list from week's meal plan with fridge integration	Unit & integration tests for aggregation logic and UI status flags	Missing vs. in-stock ingredients list correctly generated based on current fridge inventory	Planned
@@ -303,11 +303,42 @@ Sprint	Feature / Requirement	Test Focus	Demo Criteria	Status
   - Set up Next.js, TypeScript, Tailwind CSS, ESLint, and Prettier
   - All scaffold pages render and navigation works as expected
 
+- **Sprint 2** (2024-06-15):
+  - Implemented complete fridge ingredient management with Supabase integration
+  - Created API routes for CRUD operations on fridge items and ingredients
+  - Added UI for viewing, adding, editing, and deleting fridge items
+  - Implemented functionality to add new ingredients on-the-fly
+  - Set up unit tests with MSW for API mocking and E2E tests with Playwright
+  - Added SQL schema definition for Supabase tables
+
+- **Sprint 3** (2024-06-20):
+  - Implemented meal management with full CRUD operations
+  - Created business logic for nutrition calculation
+  - Built API routes for managing meals and their ingredients
+  - Designed UI components for displaying meal information (MealCard)
+  - Implemented form for creating and editing meals with ingredient selection
+  - Added integration with ingredients from Sprint 2
+  - Set up unit tests for meal business logic and API services
+
 ---
 
 ## 8. Decision Log
 
 - Sprint 1: No major decisions for Sprint 1.
+
+- Sprint 2 (2024-06-15):
+  - Decided to use Supabase as the backend database with snake_case naming conventions for tables
+  - Established pattern for API routes with proper error handling and status codes
+  - Implemented client-side services with TypeScript interfaces for type safety
+  - Used MSW for API mocking in tests to allow for unit testing without database dependencies
+  - Adopted a component-based architecture for the UI with clear separation between data fetching and presentation
+
+- Sprint 3 (2024-06-20):
+  - Implemented a nutrition calculation approach using 100g as the base unit for scaling ingredient nutritional values
+  - Developed a pattern for managing complex forms with nested data (meals with ingredients)
+  - Adopted a strategy for temporary IDs in client-side forms for better UI state management
+  - Created reusable components for displaying nutritional information and meal details
+  - Established conventions for ingredient quantity handling and unit selection
 
 ---
 

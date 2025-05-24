@@ -21,6 +21,37 @@ export interface FridgeItem {
   ingredient?: Ingredient;
 }
 
+export interface MealIngredient {
+  id: string;
+  meal_id: string;
+  ingredient_id: string;
+  quantity: number;
+  unit: string;
+  created_at?: string;
+  updated_at?: string;
+  ingredient?: Ingredient;
+}
+
+export interface Meal {
+  id: string;
+  name: string;
+  description?: string;
+  instructions?: string;
+  prep_time?: number;
+  cook_time?: number;
+  servings?: number;
+  image_url?: string;
+  created_at?: string;
+  updated_at?: string;
+  ingredients?: MealIngredient[];
+  nutrition?: {
+    calories: number;
+    protein: number;
+    carbs: number;
+    fat: number;
+  };
+}
+
 // Fridge Item API Service
 export const fridgeService = {
   // Get all fridge items
@@ -125,6 +156,138 @@ export const ingredientService = {
     if (!response.ok) {
       const error = await response.json();
       throw new Error(error.error || "Failed to add ingredient");
+    }
+    return response.json();
+  },
+};
+
+// Meal API Service
+export const mealService = {
+  // Get all meals
+  async getAllMeals(): Promise<Meal[]> {
+    const response = await fetch("/api/meals");
+    if (!response.ok) {
+      const error = await response.json();
+      throw new Error(error.error || "Failed to fetch meals");
+    }
+    return response.json();
+  },
+
+  // Get a single meal by ID
+  async getMeal(id: string): Promise<Meal> {
+    const response = await fetch(`/api/meals/${id}`);
+    if (!response.ok) {
+      const error = await response.json();
+      throw new Error(error.error || `Failed to fetch meal ${id}`);
+    }
+    return response.json();
+  },
+
+  // Create a new meal
+  async createMeal(
+    meal: Omit<Meal, "id" | "created_at" | "updated_at" | "nutrition"> & {
+      ingredients?: Array<{
+        ingredient_id: string;
+        quantity: number;
+        unit: string;
+      }>;
+    }
+  ): Promise<Meal> {
+    const response = await fetch("/api/meals", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify(meal),
+    });
+
+    if (!response.ok) {
+      const error = await response.json();
+      throw new Error(error.error || "Failed to create meal");
+    }
+    return response.json();
+  },
+
+  // Update a meal
+  async updateMeal(
+    id: string,
+    meal: Partial<
+      Omit<
+        Meal,
+        "id" | "created_at" | "updated_at" | "nutrition" | "ingredients"
+      >
+    >
+  ): Promise<Meal> {
+    const response = await fetch(`/api/meals/${id}`, {
+      method: "PUT",
+      headers: {
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify(meal),
+    });
+
+    if (!response.ok) {
+      const error = await response.json();
+      throw new Error(error.error || `Failed to update meal ${id}`);
+    }
+    return response.json();
+  },
+
+  // Delete a meal
+  async deleteMeal(id: string): Promise<{ success: boolean }> {
+    const response = await fetch(`/api/meals/${id}`, {
+      method: "DELETE",
+    });
+
+    if (!response.ok) {
+      const error = await response.json();
+      throw new Error(error.error || `Failed to delete meal ${id}`);
+    }
+    return response.json();
+  },
+
+  // Add ingredient to a meal
+  async addIngredientToMeal(
+    mealId: string,
+    mealIngredient: Omit<
+      MealIngredient,
+      "id" | "meal_id" | "created_at" | "updated_at" | "ingredient"
+    >
+  ): Promise<MealIngredient> {
+    const response = await fetch(`/api/meals/${mealId}/ingredients`, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify(mealIngredient),
+    });
+
+    if (!response.ok) {
+      const error = await response.json();
+      throw new Error(
+        error.error || `Failed to add ingredient to meal ${mealId}`
+      );
+    }
+    return response.json();
+  },
+
+  // Remove ingredient from a meal
+  async removeIngredientFromMeal(
+    mealId: string,
+    ingredientId: string
+  ): Promise<{ success: boolean }> {
+    const response = await fetch(
+      `/api/meals/${mealId}/ingredients/${ingredientId}`,
+      {
+        method: "DELETE",
+      }
+    );
+
+    if (!response.ok) {
+      const error = await response.json();
+      throw new Error(
+        error.error || `Failed to remove ingredient from meal ${mealId}`
+      );
     }
     return response.json();
   },
