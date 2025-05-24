@@ -5,58 +5,85 @@ test.describe("Fridge CRUD E2E", () => {
     await page.goto("/fridge");
   });
 
-  // These tests require a working database with ingredients
-  // Skip them until we have a proper test environment
-  test.skip("can add, edit, and delete a fridge item", async ({ page }) => {
-    // Select an ingredient from the dropdown
-    // (assuming there are ingredients already in the database)
-    await page.selectOption('select[name="ingredient_id"]', { index: 1 });
-    await page.getByPlaceholder("Quantity").fill("2");
-    await page.getByPlaceholder("Unit").fill("L");
-    await page.getByRole("button", { name: "Add", exact: true }).click();
-    
-    // Wait for the item to be added
-    await expect(page.locator(".card").filter({ hasText: "2 L" })).toBeVisible();
-    
-    // Edit the item
-    await page.getByRole("button", { name: "Edit" }).first().click();
-    await page.getByPlaceholder("Quantity").fill("3");
-    await page.getByRole("button", { name: "Save" }).click();
-    
-    // Check that the item was updated
-    await expect(page.locator(".card").filter({ hasText: "3 L" })).toBeVisible();
-    
-    // Delete the item
-    await page.getByRole("button", { name: "Delete" }).first().click();
-    
-    // Wait for the item to be deleted
-    await expect(page.locator(".card").filter({ hasText: "3 L" })).not.toBeVisible();
+  test("should display the fridge page", async ({ page }) => {
+    // Check the page title
+    await expect(page.getByRole("heading", { name: "Fridge Inventory" })).toBeVisible();
   });
-  
-  test.skip("can add a new ingredient", async ({ page }) => {
-    // Click the "Add new ingredient" link
-    await page.getByText("+ Add new ingredient").click();
+
+  test("should add a new ingredient to the fridge", async ({ page }) => {
+    // Fill the add ingredient form
+    await page.getByLabel("Name").fill("Test Banana");
+    await page.getByLabel("Quantity").fill("5");
+    await page.getByLabel("Unit").selectOption("pcs");
     
-    // Fill in the new ingredient form
-    await page.getByPlaceholder("New ingredient name").fill("Dragon Fruit");
+    // Add the ingredient
+    await page.getByRole("button", { name: "Add to Fridge" }).click();
     
-    // Click the Add button in the new ingredient form
-    // We need to be specific because there are multiple "Add" buttons
-    await page.locator('button.bg-blue-600').click();
+    // Wait for the ingredient to appear in the list
+    await expect(page.getByText("Test Banana")).toBeVisible();
+    await expect(page.getByText("5 pcs")).toBeVisible();
+  });
+
+  test("should edit an existing ingredient", async ({ page }) => {
+    // First add an ingredient if none exists
+    const ingredientExists = await page.getByText("Test Banana").isVisible();
     
-    // The form should switch back to the fridge item form
-    // and the new ingredient should be selected
-    await expect(page.locator('select[name="ingredient_id"]')).toBeVisible();
+    if (!ingredientExists) {
+      // Add a new ingredient
+      await page.getByLabel("Name").fill("Test Banana");
+      await page.getByLabel("Quantity").fill("5");
+      await page.getByLabel("Unit").selectOption("pcs");
+      await page.getByRole("button", { name: "Add to Fridge" }).click();
+      
+      // Wait for the ingredient to appear
+      await expect(page.getByText("Test Banana")).toBeVisible();
+    }
     
-    // Add a fridge item with the new ingredient
-    await page.getByPlaceholder("Quantity").fill("1");
-    await page.getByPlaceholder("Unit").fill("pcs");
-    await page.getByRole("button", { name: "Add", exact: true }).click();
+    // Click the edit button
+    await page.getByRole("button", { name: "Edit" }).first().click();
     
-    // Check that the item was added with the new ingredient
-    await expect(page.locator(".card").filter({ hasText: "Dragon Fruit" })).toBeVisible();
+    // Update the values
+    await page.getByLabel("Name").fill("Updated Banana");
+    await page.getByLabel("Quantity").fill("10");
     
-    // Clean up by deleting the item
+    // Save the changes
+    await page.getByRole("button", { name: "Update" }).click();
+    
+    // Check that the updated values are shown
+    await expect(page.getByText("Updated Banana")).toBeVisible();
+    await expect(page.getByText("10 pcs")).toBeVisible();
+  });
+
+  test("should delete an ingredient", async ({ page }) => {
+    // First add an ingredient if none exists
+    const ingredientExists = await page.getByText("Updated Banana").isVisible()
+      || await page.getByText("Test Banana").isVisible();
+    
+    if (!ingredientExists) {
+      // Add a new ingredient
+      await page.getByLabel("Name").fill("Test Banana");
+      await page.getByLabel("Quantity").fill("5");
+      await page.getByLabel("Unit").selectOption("pcs");
+      await page.getByRole("button", { name: "Add to Fridge" }).click();
+      
+      // Wait for the ingredient to appear
+      await expect(page.getByText("Test Banana")).toBeVisible();
+    }
+    
+    // Get the number of ingredients before deletion
+    const initialCount = await page.locator(".ingredient-card").count();
+    
+    // Click the delete button on the first ingredient
     await page.getByRole("button", { name: "Delete" }).first().click();
+    
+    // Handle the confirmation dialog
+    page.on("dialog", dialog => dialog.accept());
+    
+    // Wait for the deletion to process
+    await page.waitForTimeout(1000);
+    
+    // Verify we have one fewer ingredient
+    const newCount = await page.locator(".ingredient-card").count();
+    expect(newCount).toBe(initialCount - 1);
   });
 }); 

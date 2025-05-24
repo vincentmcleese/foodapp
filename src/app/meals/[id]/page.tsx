@@ -1,7 +1,8 @@
 import { notFound } from "next/navigation";
 import { supabaseAdmin } from "@/lib/supabase";
-import MealForm from "@/components/MealForm";
+import { MealForm } from "@/components/features/meals/MealForm";
 import { calculateNutrition } from "@/lib/meal";
+import { PageLayout } from "@/components/common/PageLayout";
 
 export const dynamic = "force-dynamic";
 
@@ -20,7 +21,7 @@ export default async function MealPage({ params }: MealPageProps) {
     .select(
       `
       *,
-      meal_ingredient:meal_id (
+      meal_ingredient!meal_id (
         *,
         ingredient:ingredient_id (id, name, usda_fdc_id, nutrition)
       )
@@ -45,9 +46,8 @@ export default async function MealPage({ params }: MealPageProps) {
   };
 
   return (
-    <div className="container mx-auto px-4 py-8">
-      <h1 className="text-2xl font-bold mb-6">Edit Meal</h1>
+    <PageLayout title="Edit Meal" subtitle="Make changes to your meal">
       <MealForm meal={processedMeal} isEditing={true} />
-    </div>
+    </PageLayout>
   );
 }

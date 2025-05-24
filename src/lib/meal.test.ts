@@ -1,4 +1,4 @@
-import { calculateNutrition } from './meal';
+import { calculateNutrition, formatNutritionValue, calculateTotalTime, formatTime } from './meal';
 // Importing types for test typings
 // eslint-disable-next-line @typescript-eslint/no-unused-vars
 import { Ingredient } from './api-services';
@@ -10,6 +10,7 @@ describe('Meal Business Logic', () => {
       const ingredients = [
         {
           id: '1',
+          meal_id: 'meal-1',
           ingredient_id: 'ing-1',
           quantity: 100,
           unit: 'g',
@@ -26,6 +27,7 @@ describe('Meal Business Logic', () => {
         },
         {
           id: '2',
+          meal_id: 'meal-1',
           ingredient_id: 'ing-2',
           quantity: 200,
           unit: 'g',
@@ -57,6 +59,7 @@ describe('Meal Business Logic', () => {
       const ingredients = [
         {
           id: '1',
+          meal_id: 'meal-1',
           ingredient_id: 'ing-1',
           quantity: 100,
           unit: 'g',
@@ -73,6 +76,7 @@ describe('Meal Business Logic', () => {
         },
         {
           id: '2',
+          meal_id: 'meal-1',
           ingredient_id: 'ing-2',
           quantity: 50,
           unit: 'g',
@@ -99,6 +103,7 @@ describe('Meal Business Logic', () => {
       const ingredients = [
         {
           id: '1',
+          meal_id: 'meal-1',
           ingredient_id: 'ing-1',
           quantity: 100,
           unit: 'g',
@@ -119,6 +124,60 @@ describe('Meal Business Logic', () => {
 
       const result = calculateNutrition(ingredients);
       expect(result).toEqual(expectedNutrition);
+    });
+  });
+
+  describe('formatNutritionValue', () => {
+    it('should format a nutrition value with default unit (g)', () => {
+      expect(formatNutritionValue(10)).toBe('10g');
+    });
+
+    it('should format a nutrition value with custom unit', () => {
+      expect(formatNutritionValue(10, 'mg')).toBe('10mg');
+    });
+
+    it('should format a decimal nutrition value', () => {
+      expect(formatNutritionValue(10.5, 'g')).toBe('10.5g');
+    });
+  });
+
+  describe('calculateTotalTime', () => {
+    it('should calculate total time from prep and cook times', () => {
+      expect(calculateTotalTime(15, 30)).toBe(45);
+    });
+
+    it('should handle missing prep time', () => {
+      expect(calculateTotalTime(undefined, 30)).toBe(30);
+    });
+
+    it('should handle missing cook time', () => {
+      expect(calculateTotalTime(15, undefined)).toBe(15);
+    });
+
+    it('should handle both times missing', () => {
+      expect(calculateTotalTime(undefined, undefined)).toBe(0);
+    });
+  });
+
+  describe('formatTime', () => {
+    it('should format minutes to just minutes when less than an hour', () => {
+      expect(formatTime(45)).toBe('45m');
+    });
+
+    it('should format time to hours and minutes when more than an hour', () => {
+      expect(formatTime(90)).toBe('1h 30m');
+    });
+
+    it('should format time to just hours when minutes are 0', () => {
+      expect(formatTime(120)).toBe('2h');
+    });
+
+    it('should handle undefined time', () => {
+      expect(formatTime(undefined)).toBe('0m');
+    });
+
+    it('should handle 0 minutes', () => {
+      expect(formatTime(0)).toBe('0m');
     });
   });
 }); 

@@ -1,4 +1,5 @@
 import type { Config } from "tailwindcss";
+import { tokens } from "./src/styles/tokens";
 
 export default {
   darkMode: ["class"],
@@ -21,6 +22,7 @@ export default {
           foreground: "hsl(var(--popover-foreground))",
         },
         primary: {
+          ...tokens.colors.primary,
           DEFAULT: "hsl(var(--primary))",
           foreground: "hsl(var(--primary-foreground))",
         },
@@ -50,12 +52,23 @@ export default {
           "4": "hsl(var(--chart-4))",
           "5": "hsl(var(--chart-5))",
         },
+        success: tokens.colors.success,
+        warning: tokens.colors.warning,
+        error: tokens.colors.error,
+        neutral: tokens.colors.neutral,
       },
       borderRadius: {
+        ...tokens.borderRadius,
         lg: "var(--radius)",
         md: "calc(var(--radius) - 2px)",
         sm: "calc(var(--radius) - 4px)",
       },
+      boxShadow: tokens.shadows,
+      fontSize: tokens.typography.fontSize,
+      fontWeight: tokens.typography.fontWeight,
+      lineHeight: tokens.typography.lineHeight,
+      zIndex: tokens.zIndex,
+      transitionDuration: tokens.durations,
     },
   },
   plugins: [require("tailwindcss-animate")],
