@@ -1,21 +1,19 @@
 import { notFound } from "next/navigation";
 import { supabaseAdmin } from "@/lib/supabase";
-import { MealForm } from "@/components/features/meals/MealForm";
-import { calculateNutrition } from "@/lib/meal";
 import { PageLayout } from "@/components/common/PageLayout";
+import { MealForm } from "@/components/features/meals/MealForm";
 
 export const dynamic = "force-dynamic";
 
 interface MealPageProps {
-  params: {
-    id: string;
-  };
+  params: Promise<{ id: string }>;
 }
 
 export default async function MealPage({ params }: MealPageProps) {
-  const { id } = params;
+  // Await params to access id safely
+  const { id } = await params;
 
-  // Fetch the meal with its ingredients
+  // Fetch the meal
   const { data: meal, error } = await supabaseAdmin
     .from("meal")
     .select(
@@ -35,19 +33,9 @@ export default async function MealPage({ params }: MealPageProps) {
     notFound();
   }
 
-  // Process the meal data
-  const ingredients = meal.meal_ingredient || [];
-  const nutrition = calculateNutrition(ingredients);
-
-  const processedMeal = {
-    ...meal,
-    ingredients,
-    nutrition,
-  };
-
   return (
-    <PageLayout title="Edit Meal" subtitle="Make changes to your meal">
-      <MealForm meal={processedMeal} isEditing={true} />
+    <PageLayout title="Edit Meal" subtitle="Update your meal">
+      <MealForm meal={meal} isEditing={true} />
     </PageLayout>
   );
 }

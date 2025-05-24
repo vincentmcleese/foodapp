@@ -350,6 +350,141 @@ This section outlines the process for making, verifying, and documenting schema 
 
 ---
 
+### 3e. CRUD Operation Standards
+
+To maintain consistency in our codebase and prevent implementation drift, follow these guidelines for all CRUD operations:
+
+#### 1. Route Parameter Handling (Next.js 15+)
+
+```typescript
+// Always use Promise-based params
+export async function GET(
+  request: Request,
+  { params }: { params: Promise<{ id: string }> }
+) {
+  // Always await params before accessing properties
+  const { id } = await params;
+  
+  // Continue with database operations
+}
+```
+
+#### 2. Database Table Naming Conventions
+
+- Use singular form for all table names (e.g., `meal_ingredient` not `meal_ingredients`)
+- Foreign key columns should end with `_id` (e.g., `meal_id`, `ingredient_id`)
+- Join table names should combine the two entities in singular form (e.g., `meal_ingredient`)
+- Primary keys should be named `id` and use UUIDs
+
+#### 3. API Route Structure
+
+- Basic resource routes: `/api/[resource]/route.ts`
+- Single item routes: `/api/[resource]/[id]/route.ts`
+- Nested resources: `/api/[resource]/[id]/[subresource]/[subid]/route.ts`
+- Implement HTTP methods according to REST conventions:
+  - `GET` (collection): List all resources
+  - `GET` (item): Get single resource by ID
+  - `POST`: Create new resource
+  - `PUT`: Update existing resource (full or partial)
+  - `DELETE`: Remove resource
+
+#### 4. API Query Structure (Supabase)
+
+```typescript
+// Standard query pattern with relations
+const { data, error } = await supabaseAdmin
+  .from("table_name")
+  .select(`
+    *,
+    related_table!foreign_key (
+      *,
+      nested_related_table:foreign_key (id, name)
+    )
+  `)
+  .eq("id", id)
+  .single();
+
+// Standard error handling
+if (error) {
+  console.error(`Error fetching resource ${id}:`, error);
+  return NextResponse.json(
+    { error: "Failed to fetch resource" },
+    { status: error.code === "PGRST116" ? 404 : 500 }
+  );
+}
+```
+
+#### 5. Client-Side Service Pattern
+
+Define service objects in `api-services.ts` with consistent method naming:
+
+```typescript
+export const resourceService = {
+  async getAll(): Promise<Resource[]> { /* ... */ },
+  async get(id: string): Promise<Resource> { /* ... */ },
+  async create(data: CreateResourceDto): Promise<Resource> { /* ... */ },
+  async update(id: string, data: UpdateResourceDto): Promise<Resource> { /* ... */ },
+  async delete(id: string): Promise<{ success: boolean }> { /* ... */ },
+};
+```
+
+#### 6. Component Structure
+
+- **Server Components (`page.tsx`):**
+  - Fetch data directly using Supabase
+  - Handle awaiting Promises (including params)
+  - Pass data to client components via props
+  - Use `notFound()` for 404 handling
+
+```typescript
+export default async function ResourcePage({ params }: ResourcePageProps) {
+  const { id } = await params;
+  // Fetch data and handle errors
+  return <ResourceForm resource={data} isEditing={true} />;
+}
+```
+
+- **Client Components:**
+  - Add `"use client";` directive
+  - Handle form state with react-hook-form + zod
+  - Use service objects for API calls
+  - Manage loading/error states
+
+#### 7. Form Components for CRUD
+
+```typescript
+"use client";
+
+import { z } from "zod";
+import { useForm } from "react-hook-form";
+import { zodResolver } from "@hookform/resolvers/zod";
+
+// Define zod schema
+const formSchema = z.object({
+  name: z.string().min(1, "Name is required"),
+  // Additional fields
+});
+
+export function ResourceForm({ resource, isEditing }: ResourceFormProps) {
+  // Initialize form with react-hook-form + zod
+  const form = useForm<z.infer<typeof formSchema>>({
+    resolver: zodResolver(formSchema),
+    defaultValues: resource || {},
+  });
+
+  // Form submission logic
+  const onSubmit = async (values: z.infer<typeof formSchema>) => {
+    // API calls via service object
+  };
+
+  // Form UI with shadcn/ui components
+}
+```
+
+These standards ensure our CRUD implementations remain consistent, maintainable, and compatible with Next.js 15+ while following best practices for type safety and error handling.
+
+---
+
 ## 4. Project Structure & Route Map
 
 ```plaintext
@@ -461,6 +596,15 @@ Sprint	Feature / Requirement	Test Focus	Demo Criteria	Status
   - Added integration with ingredients from Sprint 2
   - Set up unit tests for meal business logic and API services
 
+- **Sprint 4** (2024-06-25):
+  - Implemented weekly meal planning with full CRUD operations
+  - Added single-click delete functionality for plan entries without confirmation dialogs
+  - Enhanced meal card UI with improved visual hierarchy and accessibility
+  - Fixed date handling issues in PlanEntryForm to prevent "Invalid time value" errors
+  - Implemented proper error handling for form submissions
+  - Improved UI components to better align with design system guidelines
+  - Added unit tests for delete functionality and date handling
+
 ---
 
 ## 8. Decision Log
@@ -480,6 +624,13 @@ Sprint	Feature / Requirement	Test Focus	Demo Criteria	Status
   - Adopted a strategy for temporary IDs in client-side forms for better UI state management
   - Created reusable components for displaying nutritional information and meal details
   - Established conventions for ingredient quantity handling and unit selection
+
+- Sprint 4 (2024-06-25):
+  - Decided to implement single-click delete functionality without confirmation dialogs for better user experience
+  - Enhanced meal card UI with a footer-based action pattern for better visual hierarchy
+  - Adopted a more robust date handling approach with validation to prevent runtime errors
+  - Standardized error handling for form submissions with appropriate user feedback via toast notifications
+  - Implemented a pattern for safely formatting and displaying dates with fallbacks for invalid values
 
 ---
 

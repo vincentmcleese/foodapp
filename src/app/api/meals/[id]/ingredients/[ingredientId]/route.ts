@@ -1,33 +1,36 @@
 import { NextResponse } from "next/server";
 import { supabaseAdmin } from "@/lib/supabase";
 
-// DELETE an ingredient from a meal
+// DELETE a specific ingredient from a meal
 export async function DELETE(
   request: Request,
-  context: { params: { id: string; ingredientId: string } }
+  { params }: { params: Promise<{ id: string; ingredientId: string }> }
 ) {
   try {
-    const { id, ingredientId } = context.params;
+    const { id, ingredientId } = await params;
 
-    // Delete the ingredient from the meal
     const { error } = await supabaseAdmin
       .from("meal_ingredient")
       .delete()
-      .eq("id", ingredientId)
-      .eq("meal_id", id);
+      .eq("meal_id", id)
+      .eq("ingredient_id", ingredientId);
 
     if (error) {
-      throw error;
+      console.error(
+        `Error deleting ingredient ${ingredientId} from meal ${id}:`,
+        error
+      );
+      return NextResponse.json(
+        { error: "Failed to delete ingredient from meal" },
+        { status: error.code === "PGRST116" ? 404 : 500 }
+      );
     }
 
     return NextResponse.json({ success: true });
   } catch (error) {
-    console.error(
-      `Error removing ingredient ${context.params.ingredientId} from meal ${context.params.id}:`,
-      error
-    );
+    console.error(`Unexpected error deleting ingredient from meal:`, error);
     return NextResponse.json(
-      { error: "Failed to remove ingredient from meal" },
+      { error: "An unexpected error occurred" },
       { status: 500 }
     );
   }

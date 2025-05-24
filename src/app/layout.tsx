@@ -10,6 +10,7 @@ import {
   Heart,
   ShoppingCart,
 } from "lucide-react";
+import { ToastProvider } from "@/components/common/ToastProvider";
 
 const inter = Inter({ subsets: ["latin"] });
 
@@ -31,7 +32,7 @@ export default function RootLayout({
       <body
         className={cn(
           inter.className,
-          "bg-background text-foreground min-h-screen flex flex-col",
+          "bg-background text-foreground min-h-screen flex flex-col"
         )}
       >
         <div className="flex flex-1 w-full">
@@ -69,6 +70,7 @@ export default function RootLayout({
             </Link>
           ))}
         </footer>
+        <ToastProvider />
       </body>
     </html>
   );

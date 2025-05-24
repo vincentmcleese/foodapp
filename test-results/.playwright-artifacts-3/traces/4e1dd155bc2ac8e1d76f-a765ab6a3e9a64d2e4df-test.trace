@@ -1,0 +1,33 @@
+{"version":7,"type":"context-options","origin":"testRunner","browserName":"","options":{},"platform":"darwin","wallTime":1748119979032,"monotonicTime":321146.74,"sdkLanguage":"javascript"}
+{"type":"before","callId":"hook@1","startTime":321178.622,"class":"Test","method":"step","apiName":"Before Hooks","params":{},"stack":[]}
+{"type":"before","callId":"hook@2","parentId":"hook@1","startTime":321180.279,"class":"Test","method":"step","apiName":"beforeEach hook","params":{},"stack":[{"file":"/Users/vincent/foodapp/src/__tests__/e2e/meal-crud.spec.ts","line":4,"column":8}]}
+{"type":"before","callId":"fixture@3","parentId":"hook@2","startTime":321194.269,"class":"Test","method":"step","apiName":"fixture: browser","params":{},"stack":[]}
+{"type":"before","callId":"pw:api@4","parentId":"fixture@3","startTime":321197.313,"class":"Test","method":"step","apiName":"browserType.launch","params":{"handleSIGINT":"false","tracesDir":"/Users/vincent/foodapp/test-results/.playwright-artifacts-3/traces","headless":"true","ignoreDefaultArgs":"undefined","ignoreAllDefaultArgs":"false","env":"undefined"},"stack":[]}
+{"type":"after","callId":"pw:api@4","endTime":321993.876,"annotations":[]}
+{"type":"after","callId":"fixture@3","endTime":321995.748,"annotations":[]}
+{"type":"before","callId":"fixture@5","parentId":"hook@2","startTime":322000.405,"class":"Test","method":"step","apiName":"fixture: context","params":{},"stack":[]}
+{"type":"before","callId":"pw:api@6","parentId":"fixture@5","startTime":322005.32,"class":"Test","method":"step","apiName":"browser.newContext","params":{"acceptDownloads":"accept","bypassCSP":"false","colorScheme":"light","hasTouch":"false","ignoreHTTPSErrors":"false","isMobile":"false","javaScriptEnabled":"true","locale":"en-US","offline":"false","viewport":"Object","baseURL":"http://localhost:3000","serviceWorkers":"allow","noDefaultViewport":"false","extraHTTPHeaders":"undefined","storageState":"undefined","recordHar":"undefined","reducedMotion":"undefined","forcedColors":"undefined","contrast":"undefined","clientCertificates":"undefined"},"stack":[]}
+{"type":"after","callId":"pw:api@6","endTime":322054.456,"annotations":[]}
+{"type":"after","callId":"fixture@5","endTime":322275.578,"annotations":[]}
+{"type":"before","callId":"fixture@7","parentId":"hook@2","startTime":322277.633,"class":"Test","method":"step","apiName":"fixture: page","params":{},"stack":[]}
+{"type":"before","callId":"pw:api@8","parentId":"fixture@7","startTime":322307.091,"class":"Test","method":"step","apiName":"browserContext.newPage","params":{},"stack":[]}
+{"type":"after","callId":"pw:api@8","endTime":322773.567,"annotations":[]}
+{"type":"after","callId":"fixture@7","endTime":322774.221,"annotations":[]}
+{"type":"before","callId":"pw:api@9","parentId":"hook@2","startTime":322797.724,"class":"Test","method":"step","apiName":"page.goto","params":{"url":"/meals","waitUntil":"load"},"stack":[{"file":"/Users/vincent/foodapp/src/__tests__/e2e/meal-crud.spec.ts","line":5,"column":16}]}
+{"type":"after","callId":"hook@2","endTime":340890.113,"annotations":[],"error":{"name":"","message":"\u001b[31mTest timeout of 30000ms exceeded while running \"beforeEach\" hook.\u001b[39m","stack":"\u001b[31mTest timeout of 30000ms exceeded while running \"beforeEach\" hook.\u001b[39m\n    at /Users/vincent/foodapp/src/__tests__/e2e/meal-crud.spec.ts:4:8"}}
+{"type":"after","callId":"hook@1","endTime":340913.017,"annotations":[],"error":{"name":"","message":"\u001b[31mTest timeout of 30000ms exceeded while running \"beforeEach\" hook.\u001b[39m","stack":"\u001b[31mTest timeout of 30000ms exceeded while running \"beforeEach\" hook.\u001b[39m\n    at /Users/vincent/foodapp/src/__tests__/e2e/meal-crud.spec.ts:4:8"}}
+{"type":"before","callId":"hook@10","startTime":340946.03,"class":"Test","method":"step","apiName":"After Hooks","params":{},"stack":[]}
+{"type":"before","callId":"fixture@11","parentId":"hook@10","startTime":340953.093,"class":"Test","method":"step","apiName":"fixture: page","params":{},"stack":[]}
+{"type":"after","callId":"fixture@11","endTime":340953.995,"annotations":[]}
+{"type":"before","callId":"fixture@12","parentId":"hook@10","startTime":340956.744,"class":"Test","method":"step","apiName":"fixture: context","params":{},"stack":[]}
+{"type":"after","callId":"fixture@12","endTime":340957.247,"annotations":[]}
+{"type":"error","message":"Error: Channel closed","stack":[]}
+{"type":"after","callId":"pw:api@9","endTime":346567.74,"annotations":[],"error":{"name":"","message":"Error: page.goto: net::ERR_ABORTED; maybe frame was detached?\nCall log:\n\u001b[2m  - navigating to \"http://localhost:3000/meals\", waiting until \"load\"\u001b[22m\n","stack":"Error: page.goto: net::ERR_ABORTED; maybe frame was detached?\nCall log:\n\u001b[2m  - navigating to \"http://localhost:3000/meals\", waiting until \"load\"\u001b[22m\n\n    at /Users/vincent/foodapp/src/__tests__/e2e/meal-crud.spec.ts:5:16"}}
+{"type":"error","message":"Error: page.goto: net::ERR_ABORTED; maybe frame was detached?\nCall log:\n\u001b[2m  - navigating to \"http://localhost:3000/meals\", waiting until \"load\"\u001b[22m\n","stack":[{"file":"/Users/vincent/foodapp/src/__tests__/e2e/meal-crud.spec.ts","line":5,"column":16}]}
+{"type":"before","callId":"_attach@1","startTime":346621.06,"class":"Test","method":"step","apiName":"_attach \"_error-context-1\"","params":{},"stack":[]}
+{"type":"after","callId":"_attach@1","endTime":346621.174,"attachments":[{"name":"_error-context-1","contentType":"text/markdown","path":"/Users/vincent/foodapp/test-results/src-__tests__-e2e-meal-cru-b481c-2E-should-create-a-new-meal/error-context.md"}]}
+{"type":"after","callId":"hook@10","endTime":346632.943,"annotations":[]}
+{"type":"before","callId":"hook@13","startTime":346633.481,"class":"Test","method":"step","apiName":"Worker Cleanup","params":{},"stack":[]}
+{"type":"before","callId":"fixture@14","parentId":"hook@13","startTime":346634.306,"class":"Test","method":"step","apiName":"fixture: browser","params":{},"stack":[]}
+{"type":"after","callId":"fixture@14","endTime":346720.196,"annotations":[]}
+{"type":"after","callId":"hook@13","endTime":346721.224,"annotations":[]}

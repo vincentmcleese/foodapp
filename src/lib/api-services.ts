@@ -52,6 +52,16 @@ export interface Meal {
   };
 }
 
+export interface PlanEntry {
+  id: string;
+  meal_id: string;
+  date: string; // ISO date string
+  meal_type: string; // 'breakfast', 'lunch', 'dinner', 'snack'
+  created_at?: string;
+  updated_at?: string;
+  meal?: Meal;
+}
+
 // Fridge Item API Service
 export const fridgeService = {
   // Get all fridge items
@@ -288,6 +298,81 @@ export const mealService = {
       throw new Error(
         error.error || `Failed to remove ingredient from meal ${mealId}`
       );
+    }
+    return response.json();
+  },
+};
+
+// Plan API Service
+export const planService = {
+  // Get all plan entries
+  async getAllEntries(): Promise<PlanEntry[]> {
+    const response = await fetch("/api/plan");
+    if (!response.ok) {
+      const error = await response.json();
+      throw new Error(error.error || "Failed to fetch plan entries");
+    }
+    return response.json();
+  },
+
+  // Get a single plan entry by ID
+  async getEntry(id: string): Promise<PlanEntry> {
+    const response = await fetch(`/api/plan/${id}`);
+    if (!response.ok) {
+      const error = await response.json();
+      throw new Error(error.error || `Failed to fetch plan entry ${id}`);
+    }
+    return response.json();
+  },
+
+  // Create a new plan entry
+  async createEntry(
+    entry: Omit<PlanEntry, "id" | "created_at" | "updated_at" | "meal">
+  ): Promise<PlanEntry> {
+    const response = await fetch("/api/plan", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify(entry),
+    });
+
+    if (!response.ok) {
+      const error = await response.json();
+      throw new Error(error.error || "Failed to create plan entry");
+    }
+    return response.json();
+  },
+
+  // Update a plan entry
+  async updateEntry(
+    id: string,
+    entry: Partial<Omit<PlanEntry, "id" | "created_at" | "updated_at" | "meal">>
+  ): Promise<PlanEntry> {
+    const response = await fetch(`/api/plan/${id}`, {
+      method: "PUT",
+      headers: {
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify(entry),
+    });
+
+    if (!response.ok) {
+      const error = await response.json();
+      throw new Error(error.error || `Failed to update plan entry ${id}`);
+    }
+    return response.json();
+  },
+
+  // Delete a plan entry
+  async deleteEntry(id: string): Promise<{ success: boolean }> {
+    const response = await fetch(`/api/plan/${id}`, {
+      method: "DELETE",
+    });
+
+    if (!response.ok) {
+      const error = await response.json();
+      throw new Error(error.error || `Failed to delete plan entry ${id}`);
     }
     return response.json();
   },
