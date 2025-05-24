@@ -1,0 +1,90 @@
+// Prisma schema for Supabase foodapp
+// Run: npx prisma db push (or migrate) to sync
+
+generator client {
+    provider = "prisma-client-js"
+}
+
+model Ingredient {
+    id        String   @id @default(uuid())
+    name      String   @unique
+    usdaFdcId Int? // Link to USDA FoodData Central, if available
+    nutrition Json? // { calories, protein, fat, carbs, ... } per 100g
+    createdAt DateTime @default(now())
+    updatedAt DateTime @updatedAt
+
+    fridgeItems     FridgeItem[]
+    mealIngredients MealIngredient[]
+}
+
+model FridgeItem {
+    id           String     @id @default(uuid())
+    ingredient   Ingredient @relation(fields: [ingredientId], references: [id])
+    ingredientId String
+    quantity     Float // e.g., 2.5
+    unit         String // e.g., "g", "kg", "ml", "pcs"
+    expiresAt    DateTime?
+    createdAt    DateTime   @default(now())
+    updatedAt    DateTime   @updatedAt
+}
+
+model Meal {
+    id          String   @id @default(uuid())
+    name        String
+    description String?
+    nutrition   Json? // { calories, protein, fat, carbs, ... } for the meal
+    createdAt   DateTime @default(now())
+    updatedAt   DateTime @updatedAt
+
+    mealIngredients MealIngredient[]
+    mealPlans       MealPlan[]
+    feedbacks       Feedback[]
+}
+
+model MealIngredient {
+    id           String     @id @default(uuid())
+    meal         Meal       @relation(fields: [mealId], references: [id])
+    mealId       String
+    ingredient   Ingredient @relation(fields: [ingredientId], references: [id])
+    ingredientId String
+    quantity     Float // e.g., 100
+    unit         String // e.g., "g", "ml", "pcs"
+}
+
+model MealPlan {
+    id        String   @id @default(uuid())
+    meal      Meal     @relation(fields: [mealId], references: [id])
+    mealId    String
+    date      DateTime // The day this meal is planned for
+    mealType  String // "breakfast", "lunch", "dinner", "snack"
+    createdAt DateTime @default(now())
+    updatedAt DateTime @updatedAt
+}
+
+model HealthPrinciple {
+    id          String   @id @default(uuid())
+    name        String
+    description String?
+    enabled     Boolean  @default(true)
+    createdAt   DateTime @default(now())
+    updatedAt   DateTime @updatedAt
+}
+
+model UserPreferences {
+    id                   String   @id @default(uuid())
+    dietaryGoals         Json? // e.g., { calories: 2000, protein: 150, ... }
+    allergies            Json? // e.g., ["peanuts", "gluten"]
+    notificationInterval Int? // in minutes
+    darkMode             Boolean? // UI preference
+    createdAt            DateTime @default(now())
+    updatedAt            DateTime @updatedAt
+}
+
+model Feedback {
+    id        String   @id @default(uuid())
+    meal      Meal     @relation(fields: [mealId], references: [id])
+    mealId    String
+    rating    Int // 1-5
+    comment   String?
+    createdAt DateTime @default(now())
+}
