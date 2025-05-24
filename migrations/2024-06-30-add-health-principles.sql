@@ -2,7 +2,7 @@
 -- Create health_principle table if it doesn't exist
 CREATE TABLE IF NOT EXISTS public.health_principle (
     id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-    name TEXT NOT NULL,
+    name TEXT NOT NULL UNIQUE,
     description TEXT,
     enabled BOOLEAN NOT NULL DEFAULT TRUE,
     created_at TIMESTAMPTZ NOT NULL DEFAULT now(),
