@@ -1,7 +1,8 @@
 import { notFound } from "next/navigation";
 import { supabaseAdmin } from "@/lib/supabase";
 import { PageLayout } from "@/components/common/PageLayout";
-import { MealForm } from "@/components/features/meals/MealForm";
+import { ClientMealPage } from "@/components/features/meals/ClientMealPage";
+import { calculateNutrition } from "@/lib/meal";
 
 export const dynamic = "force-dynamic";
 
@@ -33,9 +34,46 @@ export default async function MealPage({ params }: MealPageProps) {
     notFound();
   }
 
+  // Get ratings for this meal
+  const { data: ratings, error: ratingsError } = await supabaseAdmin
+    .from("meal_rating")
+    .select("*")
+    .eq("meal_id", id);
+
+  if (ratingsError) {
+    console.error("Error fetching meal ratings:", ratingsError);
+    // Continue without ratings rather than failing
+  }
+
+  // Calculate rating summary
+  const mealRatings = ratings || [];
+  const likes = mealRatings.filter(
+    (r: { rating: boolean }) => r.rating === true
+  ).length;
+  const dislikes = mealRatings.filter(
+    (r: { rating: boolean }) => r.rating === false
+  ).length;
+
+  const ratingSummary = {
+    likes,
+    dislikes,
+    total: mealRatings.length,
+  };
+
+  // Calculate nutrition
+  const nutrition = calculateNutrition(meal.meal_ingredient || []);
+
+  // Prepare the complete meal object
+  const completeMeal = {
+    ...meal,
+    ingredients: meal.meal_ingredient || [],
+    nutrition,
+    ratings: ratingSummary,
+  };
+
   return (
-    <PageLayout title="Edit Meal" subtitle="Update your meal">
-      <MealForm meal={meal} isEditing={true} />
+    <PageLayout title={meal.name} subtitle="Meal Details">
+      <ClientMealPage meal={completeMeal} />
     </PageLayout>
   );
 }

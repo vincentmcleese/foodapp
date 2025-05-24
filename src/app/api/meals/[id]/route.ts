@@ -32,6 +32,32 @@ export async function GET(
       );
     }
 
+    // Get ratings for this meal
+    const { data: ratings, error: ratingsError } = await supabaseAdmin
+      .from("meal_rating")
+      .select("*")
+      .eq("meal_id", id);
+
+    if (ratingsError) {
+      console.error(`Error fetching ratings for meal ${id}:`, ratingsError);
+      // Continue without ratings rather than failing the request
+    }
+
+    // Calculate rating summary
+    const mealRatings = ratings || [];
+    const likes = mealRatings.filter(
+      (r: { rating: boolean }) => r.rating === true
+    ).length;
+    const dislikes = mealRatings.filter(
+      (r: { rating: boolean }) => r.rating === false
+    ).length;
+
+    const ratingSummary = {
+      likes,
+      dislikes,
+      total: mealRatings.length,
+    };
+
     // Calculate nutrition based on ingredients
     const ingredients = data.meal_ingredient || [];
     const nutrition = calculateNutrition(ingredients);
@@ -40,6 +66,7 @@ export async function GET(
       ...data,
       ingredients,
       nutrition,
+      ratings: ratingSummary,
     });
   } catch (error) {
     console.error(`Unexpected error fetching meal:`, error);

@@ -4,6 +4,8 @@ import { Card } from "@/components/common/Card";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 import { PencilIcon, TrashIcon } from "lucide-react";
+import { MealRating } from "./MealRating";
+import { MealRatingSummary } from "@/lib/api-services";
 
 export interface Meal {
   id: string;
@@ -14,6 +16,7 @@ export interface Meal {
   carbs?: number;
   fat?: number;
   imageUrl?: string;
+  ratings?: MealRatingSummary;
 }
 
 export interface MealCardProps {
@@ -24,6 +27,8 @@ export interface MealCardProps {
   className?: string;
   variant?: "default" | "highlight";
   showActions?: boolean;
+  showRating?: boolean;
+  onRatingChange?: (id: string, ratings: MealRatingSummary) => void;
 }
 
 export function MealCard({
@@ -34,6 +39,8 @@ export function MealCard({
   className,
   variant = "default",
   showActions = true,
+  showRating = true,
+  onRatingChange,
 }: MealCardProps) {
   const handleClick = () => {
     if (onClick) onClick(meal.id);
@@ -47,6 +54,12 @@ export function MealCard({
   const handleDelete = (e: React.MouseEvent) => {
     e.stopPropagation();
     if (onDelete) onDelete(meal.id);
+  };
+
+  const handleRatingChange = (newRatings: MealRatingSummary) => {
+    if (onRatingChange) {
+      onRatingChange(meal.id, newRatings);
+    }
   };
 
   return (
@@ -91,6 +104,17 @@ export function MealCard({
               <NutritionInfo label="Carbs" value={`${meal.carbs}g`} />
             )}
             {meal.fat && <NutritionInfo label="Fat" value={`${meal.fat}g`} />}
+          </div>
+        )}
+
+        {showRating && (
+          <div className="mt-2" onClick={(e) => e.stopPropagation()}>
+            <MealRating
+              mealId={meal.id}
+              initialRatings={meal.ratings}
+              variant="compact"
+              onRatingChange={handleRatingChange}
+            />
           </div>
         )}
 

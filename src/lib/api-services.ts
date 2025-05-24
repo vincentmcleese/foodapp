@@ -50,6 +50,7 @@ export interface Meal {
     carbs: number;
     fat: number;
   };
+  ratings?: MealRatingSummary;
 }
 
 export interface PlanEntry {
@@ -86,6 +87,21 @@ export interface ShoppingList {
   needToBuy: number;
   partial: number;
   inStock: number;
+}
+
+export interface MealRating {
+  id: string;
+  meal_id: string;
+  rating: boolean; // true for like, false for dislike
+  created_at?: string;
+  updated_at?: string;
+}
+
+export interface MealRatingSummary {
+  likes: number;
+  dislikes: number;
+  total: number;
+  userRating?: boolean; // Current user's rating (if available)
 }
 
 // Fridge Item API Service
@@ -324,6 +340,33 @@ export const mealService = {
       throw new Error(
         error.error || `Failed to remove ingredient from meal ${mealId}`
       );
+    }
+    return response.json();
+  },
+
+  // Rate a meal (like/dislike)
+  async rateMeal(id: string, rating: boolean): Promise<MealRating> {
+    const response = await fetch(`/api/meals/${id}/rating`, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({ rating }),
+    });
+
+    if (!response.ok) {
+      const error = await response.json();
+      throw new Error(error.error || `Failed to rate meal ${id}`);
+    }
+    return response.json();
+  },
+
+  // Get meal rating summary
+  async getMealRatings(id: string): Promise<MealRatingSummary> {
+    const response = await fetch(`/api/meals/${id}/rating`);
+    if (!response.ok) {
+      const error = await response.json();
+      throw new Error(error.error || `Failed to get ratings for meal ${id}`);
     }
     return response.json();
   },

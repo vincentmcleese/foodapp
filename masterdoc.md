@@ -565,7 +565,7 @@ Sprint	Feature / Requirement	Test Focus	Demo Criteria	Status
 4	Weekly meal planning (CRUD)	Unit & integration tests for planning CRUD and calendar interactions	User can plan meals for each day, modify entries, and remove plans	Completed
 5	Health tab: toggle on/off science principles and add new principles	Unit & integration tests for toggle functionality and principle CRUD	Health tab lists principles with working toggles; users can add and enable/disable principles	Completed
 6	Required ingredients list from week's meal plan in shop page like a shoppoing list with fridge integration	Unit & integration tests for aggregation logic and status flags	Missing vs. in-stock ingredients list correctly generated based on current fridge inventory	Completed
-7	Meal rating feature (like/dislike)	Unit & integration tests for rating persistence and UI updates	Users can rate meals; ratings are stored and displayed on the Meals page	Planned
+7	Meal rating feature (like/dislike)	Unit & integration tests for rating persistence and UI updates	Users can rate meals; ratings are stored and displayed on the Meals page	Completed
 8	AI assistant on Plan page: recommend new meals based on fridge, preferences, and science principles	Integration tests for AI endpoint and interactive UI suggestions	AI suggestions appear on Plan page and update dynamically when fridge contents or preferences change	Planned
 
 
@@ -626,6 +626,18 @@ Sprint	Feature / Requirement	Test Focus	Demo Criteria	Status
   - Added shadcn/ui Badge, Tabs, and Skeleton components for enhanced UI
   - Wrote unit tests for shopping components and API endpoints
 
+- **Sprint 7** (2024-07-08):
+  - Implemented meal rating feature with like/dislike functionality
+  - Created SQL migration script to add meal_rating table
+  - Added MealRating and MealRatingSummary interfaces to API services
+  - Built API endpoints for submitting and retrieving meal ratings
+  - Created MealRating component with compact and full variants
+  - Implemented confetti animation for positive ratings
+  - Updated MealCard to display rating information
+  - Created ClientMealPage component for improved meal details view
+  - Added unit tests for rating components and API endpoints
+  - Implemented E2E tests for the rating workflow
+
 ---
 
 ## 8. Decision Log
@@ -671,6 +683,18 @@ Sprint	Feature / Requirement	Test Focus	Demo Criteria	Status
   - Fixed table naming mismatch between plan_entry and meal_plan
   - Added shadcn/ui Badge, Tabs, and Skeleton components for enhanced UI
   - Wrote unit tests for shopping components and API endpoints
+
+- Sprint 7 (2024-07-08):
+  - Implemented meal rating feature with like/dislike functionality
+  - Created SQL migration script to add meal_rating table
+  - Added MealRating and MealRatingSummary interfaces to API services
+  - Built API endpoints for submitting and retrieving meal ratings
+  - Created MealRating component with compact and full variants
+  - Implemented confetti animation for positive ratings
+  - Updated MealCard to display rating information
+  - Created ClientMealPage component for improved meal details view
+  - Added unit tests for rating components and API endpoints
+  - Implemented E2E tests for the rating workflow
 
 ---
 
