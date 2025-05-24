@@ -14,7 +14,7 @@ export async function GET(
       .select(
         `
         *,
-        meal_ingredient:meal_id (
+        meal_ingredient!meal_id (
           *,
           ingredient:ingredient_id (id, name, usda_fdc_id, nutrition)
         )
@@ -27,6 +27,7 @@ export async function GET(
       if (error.code === "PGRST116") {
         return NextResponse.json({ error: "Meal not found" }, { status: 404 });
       }
+      console.error(`Error fetching meal ${id}:`, error);
       throw error;
     }
 

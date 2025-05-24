@@ -11,7 +11,7 @@ export default async function MealsPage() {
     .from('meal')
     .select(`
       *,
-      meal_ingredient:meal_id (
+      meal_ingredient!meal_id (
         *,
         ingredient:ingredient_id (id, name, usda_fdc_id, nutrition)
       )

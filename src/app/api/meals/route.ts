@@ -7,13 +7,14 @@ export async function GET() {
   try {
     const { data, error } = await supabaseAdmin.from("meal").select(`
         *,
-        meal_ingredient:meal_id (
+        meal_ingredient!meal_id (
           *,
           ingredient:ingredient_id (id, name, usda_fdc_id, nutrition)
         )
       `);
 
     if (error) {
+      console.error("Error fetching meals:", error);
       throw error;
     }
 
