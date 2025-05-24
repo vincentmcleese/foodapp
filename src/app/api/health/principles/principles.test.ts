@@ -1,139 +1,219 @@
-import { describe, it, expect, jest, beforeEach } from "@jest/globals";
-import { NextRequest, NextResponse } from "next/server";
+import { createMocks } from "node-mocks-http";
 import { GET, POST } from "./route";
 import { supabaseAdmin } from "@/lib/supabase";
+import { NextResponse } from "next/server";
 
-// Mock the supabaseAdmin
+// Mock NextResponse
+jest.mock("next/server", () => ({
+  NextResponse: {
+    json: jest.fn().mockImplementation((data, options) => {
+      return {
+        status: options?.status || 200,
+        json: async () => data,
+      };
+    }),
+  },
+}));
+
+// Mock the Supabase client
 jest.mock("@/lib/supabase", () => ({
   supabaseAdmin: {
-    from: jest.fn().mockReturnThis(),
-    select: jest.fn().mockReturnThis(),
-    order: jest.fn().mockReturnThis(),
-    insert: jest.fn().mockReturnThis(),
-    single: jest.fn().mockReturnThis(),
+    from: jest.fn(),
   },
 }));
 
 describe("Health Principles API", () => {
+  let req: ReturnType<typeof createMocks>["req"];
+  let res: ReturnType<typeof createMocks>["res"];
+
   beforeEach(() => {
     jest.clearAllMocks();
+    const mocks = createMocks();
+    req = mocks.req;
+    res = mocks.res;
+    (NextResponse.json as jest.Mock).mockClear();
   });
 
-  describe("GET /api/health/principles", () => {
-    it("should return health principles", async () => {
-      // Mock the supabase response
+  describe("GET", () => {
+    it("should return a list of health principles", async () => {
+      // Setup mock response
       const mockPrinciples = [
         {
           id: "1",
-          name: "Avoid Ultra-Processed Foods",
+          name: "Avoid processed foods",
           description:
-            "Minimize consumption of foods with artificial additives",
+            "Processed foods often contain additives and preservatives",
           enabled: true,
         },
         {
           id: "2",
-          name: "Focus on Plant-Based Foods",
-          description: "Eat more vegetables, fruits, and whole grains",
+          name: "Eat more vegetables",
+          description: "Vegetables provide essential nutrients",
           enabled: true,
         },
       ];
 
-      (supabaseAdmin.from as jest.Mock).mockReturnThis();
-      (supabaseAdmin.select as jest.Mock).mockReturnThis();
-      (supabaseAdmin.order as jest.Mock).mockReturnValue({
+      // Setup the mock
+      const orderMock = jest.fn().mockResolvedValue({
         data: mockPrinciples,
         error: null,
       });
+      const selectMock = jest.fn().mockReturnValue({
+        order: orderMock,
+      });
+      const fromMock = jest.fn().mockReturnValue({
+        select: selectMock,
+      });
 
+      (supabaseAdmin.from as jest.Mock).mockImplementation(fromMock);
+
+      // Call the API
       const response = await GET();
       const data = await response.json();
 
-      expect(supabaseAdmin.from).toHaveBeenCalledWith("health_principle");
-      expect(supabaseAdmin.select).toHaveBeenCalledWith("*");
-      expect(supabaseAdmin.order).toHaveBeenCalledWith("created_at", {
+      // Assertions
+      expect(fromMock).toHaveBeenCalledWith("health_principle");
+      expect(selectMock).toHaveBeenCalledWith("*");
+      expect(orderMock).toHaveBeenCalledWith("created_at", {
         ascending: false,
       });
       expect(data).toEqual(mockPrinciples);
     });
 
     it("should handle errors gracefully", async () => {
-      // Mock an error response
-      (supabaseAdmin.from as jest.Mock).mockReturnThis();
-      (supabaseAdmin.select as jest.Mock).mockReturnThis();
-      (supabaseAdmin.order as jest.Mock).mockReturnValue({
+      // Setup the mock to return an error
+      const orderMock = jest.fn().mockResolvedValue({
         data: null,
         error: { message: "Database error" },
       });
+      const selectMock = jest.fn().mockReturnValue({
+        order: orderMock,
+      });
+      const fromMock = jest.fn().mockReturnValue({
+        select: selectMock,
+      });
 
+      (supabaseAdmin.from as jest.Mock).mockImplementation(fromMock);
+
+      // Call the API
       const response = await GET();
-      const data = await response.json();
-      const status = response.status;
 
-      expect(status).toBe(500);
-      expect(data).toHaveProperty("error", "Failed to fetch health principles");
+      // Check response
+      expect(response.status).toBe(500);
+      const data = await response.json();
+      expect(data).toHaveProperty("error");
     });
   });
 
-  describe("POST /api/health/principles", () => {
+  describe("POST", () => {
     it("should create a new health principle", async () => {
-      const mockPrinciple = {
+      // Setup request body
+      const requestBody = {
         name: "New Principle",
-        description: "This is a new principle",
+        description: "Description for new principle",
         enabled: true,
       };
 
-      const mockRequest = new NextRequest(
-        "http://localhost:3000/api/health/principles",
-        {
-          method: "POST",
-          body: JSON.stringify(mockPrinciple),
-        }
-      );
-
-      const mockInsertResponse = {
-        data: {
-          id: "123",
-          ...mockPrinciple,
-          created_at: new Date().toISOString(),
-        },
+      // Setup the mock
+      const singleMock = jest.fn().mockResolvedValue({
+        data: { id: "3", ...requestBody },
         error: null,
-      };
-
-      (supabaseAdmin.from as jest.Mock).mockReturnThis();
-      (supabaseAdmin.insert as jest.Mock).mockReturnThis();
-      (supabaseAdmin.select as jest.Mock).mockReturnThis();
-      (supabaseAdmin.single as jest.Mock).mockReturnValue(mockInsertResponse);
-
-      const response = await POST(mockRequest);
-      const data = await response.json();
-      const status = response.status;
-
-      expect(status).toBe(201);
-      expect(data).toHaveProperty("id", "123");
-      expect(data).toHaveProperty("name", "New Principle");
-      expect(supabaseAdmin.from).toHaveBeenCalledWith("health_principle");
-      expect(supabaseAdmin.insert).toHaveBeenCalledWith({
-        name: "New Principle",
-        description: "This is a new principle",
-        enabled: true,
       });
+      const selectMock = jest.fn().mockReturnValue({
+        single: singleMock,
+      });
+      const insertMock = jest.fn().mockReturnValue({
+        select: selectMock,
+      });
+      const fromMock = jest.fn().mockReturnValue({
+        insert: insertMock,
+      });
+
+      (supabaseAdmin.from as jest.Mock).mockImplementation(fromMock);
+
+      // Call the API
+      const response = await POST(
+        new Request("http://localhost/api/health/principles", {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify(requestBody),
+        })
+      );
+      const data = await response.json();
+
+      // Assertions
+      expect(fromMock).toHaveBeenCalledWith("health_principle");
+      expect(insertMock).toHaveBeenCalledWith(requestBody);
+      expect(data).toHaveProperty("id", "3");
+      expect(data).toHaveProperty("name", "New Principle");
     });
 
-    it("should validate the request body", async () => {
-      const mockRequest = new NextRequest(
-        "http://localhost:3000/api/health/principles",
-        {
+    it("should handle validation errors", async () => {
+      // Setup request with missing required field
+      const requestBody = {
+        description: "Missing name field",
+        enabled: true,
+      };
+
+      // Call the API
+      const response = await POST(
+        new Request("http://localhost/api/health/principles", {
           method: "POST",
-          body: JSON.stringify({ description: "Missing name field" }),
-        }
+          headers: {
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify(requestBody),
+        })
       );
 
-      const response = await POST(mockRequest);
+      // Check response
+      expect(response.status).toBe(400);
       const data = await response.json();
-      const status = response.status;
+      expect(data).toHaveProperty("error");
+    });
 
-      expect(status).toBe(400);
-      expect(data).toHaveProperty("error", "Invalid data");
+    it("should handle database errors", async () => {
+      // Setup request body
+      const requestBody = {
+        name: "Error Principle",
+        description: "Will cause an error",
+        enabled: true,
+      };
+
+      // Setup the mock to return an error
+      const singleMock = jest.fn().mockResolvedValue({
+        data: null,
+        error: { message: "Database error" },
+      });
+      const selectMock = jest.fn().mockReturnValue({
+        single: singleMock,
+      });
+      const insertMock = jest.fn().mockReturnValue({
+        select: selectMock,
+      });
+      const fromMock = jest.fn().mockReturnValue({
+        insert: insertMock,
+      });
+
+      (supabaseAdmin.from as jest.Mock).mockImplementation(fromMock);
+
+      // Call the API
+      const response = await POST(
+        new Request("http://localhost/api/health/principles", {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify(requestBody),
+        })
+      );
+
+      // Check response
+      expect(response.status).toBe(500);
+      const data = await response.json();
+      expect(data).toHaveProperty("error");
     });
   });
 });

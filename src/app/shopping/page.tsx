@@ -1,13 +1,16 @@
 import React from "react";
-import { Card } from "@/components/ui/card";
+import { ShoppingList } from "@/components/features/shopping/ShoppingList";
+import { PageLayout } from "@/components/common/PageLayout";
 
 export default function ShoppingPage() {
   return (
-    <Card className="p-8 text-center">
-      <h2 className="text-2xl font-bold mb-2">Shopping</h2>
-      <p className="text-muted-foreground">
-        Generate and manage your shopping lists here.
-      </p>
-    </Card>
+    <PageLayout
+      title="Shopping List"
+      subtitle="Items needed for your meal plan"
+    >
+      <div className="space-y-6">
+        <ShoppingList />
+      </div>
+    </PageLayout>
   );
 }

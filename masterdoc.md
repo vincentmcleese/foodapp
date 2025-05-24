@@ -562,9 +562,9 @@ Sprint	Feature / Requirement	Test Focus	Demo Criteria	Status
 1	Basic scaffolding with pages for Meals, Plan, Fridge, Health, Shop; mobile footer navigation and page layouts	Unit & integration tests for routing, rendering, navigation	All scaffold pages render; footer nav shows correct icons/buttons; "Shop" link from Plan opens the Shop page	Completed
 2	Fridge ingredient management (CRUD)	Unit & integration tests for create/read/update/delete operations	User can add, view, edit, and delete ingredients on the Fridge page	Completed
 3	Meal management (CRUD) for meals composed of ingredients	Unit & integration tests for meal CRUD and nutrition calculation	User can create, view, edit, delete meals; nutrition summary updates accordingly	Completed
-4	Weekly meal planning (CRUD)	Unit & integration tests for planning CRUD and calendar interactions	User can plan meals for each day, modify entries, and remove plans	Planned
-5	Health tab: toggle on/off science principles and add new principles	Unit & integration tests for toggle functionality and principle CRUD	Health tab lists principles with working toggles; users can add and enable/disable principles	Planned
-6	Required ingredients list from week's meal plan with fridge integration	Unit & integration tests for aggregation logic and UI status flags	Missing vs. in-stock ingredients list correctly generated based on current fridge inventory	Planned
+4	Weekly meal planning (CRUD)	Unit & integration tests for planning CRUD and calendar interactions	User can plan meals for each day, modify entries, and remove plans	Completed
+5	Health tab: toggle on/off science principles and add new principles	Unit & integration tests for toggle functionality and principle CRUD	Health tab lists principles with working toggles; users can add and enable/disable principles	Completed
+6	Required ingredients list from week's meal plan in shop page like a shoppoing list with fridge integration	Unit & integration tests for aggregation logic and status flags	Missing vs. in-stock ingredients list correctly generated based on current fridge inventory	Completed
 7	Meal rating feature (like/dislike)	Unit & integration tests for rating persistence and UI updates	Users can rate meals; ratings are stored and displayed on the Meals page	Planned
 8	AI assistant on Plan page: recommend new meals based on fridge, preferences, and science principles	Integration tests for AI endpoint and interactive UI suggestions	AI suggestions appear on Plan page and update dynamically when fridge contents or preferences change	Planned
 
@@ -615,6 +615,17 @@ Sprint	Feature / Requirement	Test Focus	Demo Criteria	Status
   - Implemented unit tests for components and API endpoints
   - Added a dedicated route for creating new principles
 
+- **Sprint 6** (2024-07-01):
+  - Implemented shopping list feature that integrates meal plans with fridge inventory
+  - Created API endpoint that fetches meal plans and ingredients, compares with fridge inventory
+  - Added ShoppingItem interface and shopping service to the API services file
+  - Built UI components for displaying shopping items with status indicators (need-to-buy, partial, in-stock)
+  - Implemented filterable shopping list with tabs for different status categories
+  - Created SQL migration script to set up the necessary tables and sample data
+  - Fixed table naming mismatch between plan_entry and meal_plan
+  - Added shadcn/ui Badge, Tabs, and Skeleton components for enhanced UI
+  - Wrote unit tests for shopping components and API endpoints
+
 ---
 
 ## 8. Decision Log
@@ -649,6 +660,17 @@ Sprint	Feature / Requirement	Test Focus	Demo Criteria	Status
   - Used a card-based layout with consistent spacing and visual hierarchy
   - Created a dedicated route for adding new principles to provide a focused, distraction-free form experience
   - Implemented a centralized service pattern for all health principle operations to maintain consistency
+
+- Sprint 6 (2024-07-01):
+  - Implemented shopping list feature that integrates meal plans with fridge inventory
+  - Created API endpoint that fetches meal plans and ingredients, compares with fridge inventory
+  - Added ShoppingItem interface and shopping service to the API services file
+  - Built UI components for displaying shopping items with status indicators (need-to-buy, partial, in-stock)
+  - Implemented filterable shopping list with tabs for different status categories
+  - Created SQL migration script to set up the necessary tables and sample data
+  - Fixed table naming mismatch between plan_entry and meal_plan
+  - Added shadcn/ui Badge, Tabs, and Skeleton components for enhanced UI
+  - Wrote unit tests for shopping components and API endpoints
 
 ---
 

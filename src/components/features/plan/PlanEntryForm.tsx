@@ -27,11 +27,13 @@ import {
   PopoverContent,
   PopoverTrigger,
 } from "@/components/ui/popover";
-import { format, isValid } from "date-fns";
 import { CalendarIcon } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { toast } from "sonner";
 import { Card } from "@/components/common/Card";
+
+// Import date-fns correctly
+import { format, isValid } from "date-fns";
 
 const formSchema = z.object({
   meal_id: z.string().min(1, { message: "Please select a meal" }),

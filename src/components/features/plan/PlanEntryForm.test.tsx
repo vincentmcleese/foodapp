@@ -48,9 +48,10 @@ jest.mock("@/lib/api-services", () => ({
   },
 }));
 
-// Mock the date-fns format function
+// Mock date-fns
 jest.mock("date-fns", () => ({
-  format: jest.fn().mockReturnValue("May 24th, 2025"),
+  format: jest.fn().mockImplementation(() => "May 1, 2025"),
+  isValid: jest.fn().mockImplementation(() => true),
 }));
 
 describe("PlanEntryForm", () => {
@@ -389,8 +390,8 @@ describe("ClientPlanPage", () => {
       <ClientPlanPage initialEntries={mockEntries} />
     );
 
-    // Find delete buttons (there should be two, one for each entry)
-    const deleteButtons = screen.getAllByTitle("Remove from plan");
+    // Find delete buttons by looking for the buttons with "Delete" text
+    const deleteButtons = screen.getAllByText("Delete");
     expect(deleteButtons.length).toBe(2);
 
     // Click the first delete button
@@ -416,8 +417,8 @@ describe("ClientPlanPage", () => {
       <ClientPlanPage initialEntries={mockEntries} />
     );
 
-    // Find delete buttons
-    const deleteButtons = screen.getAllByTitle("Remove from plan");
+    // Find delete buttons by looking for the buttons with "Delete" text
+    const deleteButtons = screen.getAllByText("Delete");
 
     // Click the first delete button
     fireEvent.click(deleteButtons[0]);

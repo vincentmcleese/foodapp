@@ -69,15 +69,8 @@ describe("PlanCalendar", () => {
   it("calls onEditEntry when the edit button is clicked", () => {
     render(<PlanCalendar entries={mockEntries} {...mockHandlers} />);
 
-    // Find all buttons
-    const buttons = screen.getAllByRole("button");
-
-    // Find a button that doesn't have "Add meal" text
-    const editButton = buttons.find(
-      (button) =>
-        !button.textContent?.includes("Add meal") &&
-        !button.classList.contains("text-error") // Not delete button
-    );
+    // Find the Edit button by its text content
+    const editButton = screen.getAllByText("Edit")[0];
 
     if (editButton) {
       fireEvent.click(editButton);
@@ -90,10 +83,8 @@ describe("PlanCalendar", () => {
   it("calls onDeleteEntry when the delete button is clicked", () => {
     render(<PlanCalendar entries={mockEntries} {...mockHandlers} />);
 
-    // Find delete button - should have text-error class
-    const deleteButton = screen
-      .getAllByRole("button")
-      .find((button) => button.classList.contains("text-error"));
+    // Find delete button by its text content
+    const deleteButton = screen.getAllByText("Delete")[0];
 
     if (deleteButton) {
       fireEvent.click(deleteButton);
@@ -107,7 +98,7 @@ describe("PlanCalendar", () => {
     render(<PlanCalendar entries={mockEntries} {...mockHandlers} />);
 
     // Find "Add meal" button in a slot that already has entries
-    const addButtons = screen.getAllByRole("button", { name: /Add meal/i });
+    const addButtons = screen.getAllByText("Add meal");
     fireEvent.click(addButtons[0]);
 
     // Check if the handler was called with the correct day and meal type

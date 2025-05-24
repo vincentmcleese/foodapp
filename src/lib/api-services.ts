@@ -71,6 +71,23 @@ export interface HealthPrinciple {
   updated_at?: string;
 }
 
+export interface ShoppingItem {
+  id: string;
+  name: string;
+  required: number;
+  unit: string;
+  inStock: number;
+  status: "need-to-buy" | "partial" | "in-stock";
+}
+
+export interface ShoppingList {
+  shoppingList: ShoppingItem[];
+  totalItems: number;
+  needToBuy: number;
+  partial: number;
+  inStock: number;
+}
+
 // Fridge Item API Service
 export const fridgeService = {
   // Get all fridge items
@@ -467,6 +484,19 @@ export const healthService = {
     if (!response.ok) {
       const error = await response.json();
       throw new Error(error.error || `Failed to delete health principle ${id}`);
+    }
+    return response.json();
+  },
+};
+
+// Shopping List API Service
+export const shoppingService = {
+  // Get shopping list based on meal plan and fridge inventory
+  async getShoppingList(): Promise<ShoppingList> {
+    const response = await fetch("/api/shopping");
+    if (!response.ok) {
+      const error = await response.json();
+      throw new Error(error.error || "Failed to fetch shopping list");
     }
     return response.json();
   },

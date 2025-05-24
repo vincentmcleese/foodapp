@@ -51,7 +51,7 @@ model Meal {
     updatedAt    DateTime @updatedAt @map("updated_at")
 
     mealIngredients MealIngredient[]
-    mealPlans       MealPlan[]
+    planEntries     PlanEntry[]
     feedbacks       Feedback[]
 
     @@map("meal")
@@ -71,7 +71,7 @@ model MealIngredient {
     @@map("meal_ingredient")
 }
 
-model MealPlan {
+model PlanEntry {
     id        String   @id @default(uuid())
     meal      Meal     @relation(fields: [mealId], references: [id])
     mealId    String   @map("meal_id")
@@ -80,7 +80,7 @@ model MealPlan {
     createdAt DateTime @default(now()) @map("created_at")
     updatedAt DateTime @updatedAt @map("updated_at")
 
-    @@map("meal_plan")
+    @@map("plan_entry")
 }
 
 model HealthPrinciple {
