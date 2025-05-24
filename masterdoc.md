@@ -605,6 +605,16 @@ Sprint	Feature / Requirement	Test Focus	Demo Criteria	Status
   - Improved UI components to better align with design system guidelines
   - Added unit tests for delete functionality and date handling
 
+- **Sprint 5** (2024-06-30):
+  - Implemented health principles management with full CRUD operations
+  - Created API routes for health principles
+  - Built UI components for displaying and toggling health principles
+  - Implemented form for adding new health principles
+  - Added client-side state management for immediate UI updates
+  - Ensured proper error handling and user feedback with toast notifications
+  - Implemented unit tests for components and API endpoints
+  - Added a dedicated route for creating new principles
+
 ---
 
 ## 8. Decision Log
@@ -631,6 +641,14 @@ Sprint	Feature / Requirement	Test Focus	Demo Criteria	Status
   - Adopted a more robust date handling approach with validation to prevent runtime errors
   - Standardized error handling for form submissions with appropriate user feedback via toast notifications
   - Implemented a pattern for safely formatting and displaying dates with fallbacks for invalid values
+
+- Sprint 5 (2024-06-30):
+  - Adopted a toggle-based UI for enabling/disabling health principles without requiring form submission
+  - Implemented a hover-reveal pattern for delete buttons to keep the UI clean while still providing easy access
+  - Designed health principles as independent entities that can influence meal planning in future sprints
+  - Used a card-based layout with consistent spacing and visual hierarchy
+  - Created a dedicated route for adding new principles to provide a focused, distraction-free form experience
+  - Implemented a centralized service pattern for all health principle operations to maintain consistency
 
 ---
 

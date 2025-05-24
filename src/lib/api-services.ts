@@ -62,6 +62,15 @@ export interface PlanEntry {
   meal?: Meal;
 }
 
+export interface HealthPrinciple {
+  id: string;
+  name: string;
+  description?: string;
+  enabled: boolean;
+  created_at?: string;
+  updated_at?: string;
+}
+
 // Fridge Item API Service
 export const fridgeService = {
   // Get all fridge items
@@ -373,6 +382,91 @@ export const planService = {
     if (!response.ok) {
       const error = await response.json();
       throw new Error(error.error || `Failed to delete plan entry ${id}`);
+    }
+    return response.json();
+  },
+};
+
+// Health Principle API Service
+export const healthService = {
+  // Get all health principles
+  async getAllPrinciples(): Promise<HealthPrinciple[]> {
+    const response = await fetch("/api/health/principles");
+    if (!response.ok) {
+      const error = await response.json();
+      throw new Error(error.error || "Failed to fetch health principles");
+    }
+    return response.json();
+  },
+
+  // Get a single health principle by ID
+  async getPrinciple(id: string): Promise<HealthPrinciple> {
+    const response = await fetch(`/api/health/principles/${id}`);
+    if (!response.ok) {
+      const error = await response.json();
+      throw new Error(error.error || `Failed to fetch health principle ${id}`);
+    }
+    return response.json();
+  },
+
+  // Create a new health principle
+  async createPrinciple(
+    principle: Omit<HealthPrinciple, "id" | "created_at" | "updated_at">
+  ): Promise<HealthPrinciple> {
+    const response = await fetch("/api/health/principles", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify(principle),
+    });
+
+    if (!response.ok) {
+      const error = await response.json();
+      throw new Error(error.error || "Failed to create health principle");
+    }
+    return response.json();
+  },
+
+  // Update a health principle
+  async updatePrinciple(
+    id: string,
+    principle: Partial<
+      Omit<HealthPrinciple, "id" | "created_at" | "updated_at">
+    >
+  ): Promise<HealthPrinciple> {
+    const response = await fetch(`/api/health/principles/${id}`, {
+      method: "PUT",
+      headers: {
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify(principle),
+    });
+
+    if (!response.ok) {
+      const error = await response.json();
+      throw new Error(error.error || `Failed to update health principle ${id}`);
+    }
+    return response.json();
+  },
+
+  // Toggle a health principle's enabled status
+  async togglePrinciple(
+    id: string,
+    enabled: boolean
+  ): Promise<HealthPrinciple> {
+    return this.updatePrinciple(id, { enabled });
+  },
+
+  // Delete a health principle
+  async deletePrinciple(id: string): Promise<{ success: boolean }> {
+    const response = await fetch(`/api/health/principles/${id}`, {
+      method: "DELETE",
+    });
+
+    if (!response.ok) {
+      const error = await response.json();
+      throw new Error(error.error || `Failed to delete health principle ${id}`);
     }
     return response.json();
   },

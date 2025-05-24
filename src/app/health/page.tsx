@@ -1,13 +1,37 @@
-import React from "react";
-import { Card } from "@/components/ui/card";
+import { Suspense } from "react";
+import { ClientHealthPage } from "@/components/features/health/ClientHealthPage";
+import { supabaseAdmin } from "@/lib/supabase";
+import { HealthPrinciple } from "@/lib/api-services";
 
-export default function HealthPage() {
+// Fetch health principles from the server
+async function getHealthPrinciples(): Promise<HealthPrinciple[]> {
+  const { data, error } = await supabaseAdmin
+    .from("health_principle")
+    .select("*")
+    .order("created_at", { ascending: false });
+
+  if (error) {
+    console.error("Error fetching health principles:", error);
+    return [];
+  }
+
+  return data || [];
+}
+
+export default async function HealthPage() {
+  const principles = await getHealthPrinciples();
+
   return (
-    <Card className="p-8 text-center">
-      <h2 className="text-2xl font-bold mb-2">Health</h2>
-      <p className="text-muted-foreground">
-        Explore science principles and health settings here.
+    <div className="container py-6">
+      <h1 className="text-3xl font-bold mb-6">Health Principles</h1>
+      <p className="text-muted-foreground mb-8">
+        Science-based principles to guide your meal planning and dietary
+        choices.
       </p>
-    </Card>
+
+      <Suspense fallback={<div>Loading principles...</div>}>
+        <ClientHealthPage initialPrinciples={principles} />
+      </Suspense>
+    </div>
   );
 }
