@@ -32,15 +32,46 @@ export default async function MealsPage() {
     );
   }
 
+  // Fetch all meal ratings
+  const { data: allRatings, error: ratingsError } = await supabaseAdmin
+    .from("meal_rating")
+    .select("*");
+
+  if (ratingsError) {
+    console.error("Error fetching meal ratings:", ratingsError);
+    // Continue without ratings rather than failing the request
+  }
+
+  // Group ratings by meal_id
+  const ratingsByMeal = (allRatings || []).reduce((acc, rating) => {
+    if (!acc[rating.meal_id]) {
+      acc[rating.meal_id] = [];
+    }
+    acc[rating.meal_id].push(rating);
+    return acc;
+  }, {} as Record<string, any[]>);
+
   // Process meals data
   const processedMeals = meals.map(meal => {
     const ingredients = meal.meal_ingredient || [];
     const nutrition = calculateNutrition(ingredients);
+    
+    // Calculate rating summary if available
+    const mealRatings = ratingsByMeal[meal.id] || [];
+    const likes = mealRatings.filter((r: { rating: boolean }) => r.rating === true).length;
+    const dislikes = mealRatings.filter((r: { rating: boolean }) => r.rating === false).length;
+    
+    const ratings = {
+      likes,
+      dislikes,
+      total: mealRatings.length
+    };
 
     return {
       ...meal,
       ingredients,
       nutrition,
+      ratings
     };
   });
 

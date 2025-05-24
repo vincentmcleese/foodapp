@@ -36,6 +36,13 @@ export default function MealCard({ meal, onDelete }: MealCardProps) {
     }
   };
 
+  const handleRatingChange = (id: string, newRatings: any) => {
+    // In this context, we can't directly update the server state since this is a client component
+    // The ratings will be correctly updated in the component state
+    // For a true refresh, we would need to refresh the page or use a global state manager
+    router.refresh();
+  };
+
   // Format the nutrition values
   const calories = meal.nutrition?.calories || 0;
   const protein = meal.nutrition?.protein || 0;
@@ -52,6 +59,8 @@ export default function MealCard({ meal, onDelete }: MealCardProps) {
     carbs: carbs,
     fat: fat,
     imageUrl: meal.image_url,
+    // Add ratings to the meal object
+    ratings: meal.ratings,
     // Additional properties we could display in the future
     prepTime: meal.prep_time,
     cookTime: meal.cook_time,
@@ -64,6 +73,8 @@ export default function MealCard({ meal, onDelete }: MealCardProps) {
       onEdit={handleEdit}
       onDelete={handleDelete}
       showActions={true}
+      showRating={true}
+      onRatingChange={handleRatingChange}
     />
   );
 }
