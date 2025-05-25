@@ -290,7 +290,13 @@ export const ingredientService = {
 
     if (!response.ok) {
       const error = await response.json();
-      throw new Error(error.error || `Failed to delete ingredient ${id}`);
+      // Create a custom error with additional properties for expected error cases
+      const customError = new Error(
+        error.error || `Failed to delete ingredient ${id}`
+      );
+      // Add expected property to indicate if this is an expected error
+      (customError as any).expected = error.error?.includes("used in meals");
+      throw customError;
     }
     return response.json();
   },
@@ -701,6 +707,19 @@ export const healthService = {
     if (!response.ok) {
       const error = await response.json();
       throw new Error(error.error || `Failed to delete health principle ${id}`);
+    }
+    return response.json();
+  },
+};
+
+// Shopping List API Service
+export const shoppingService = {
+  // Get shopping list based on meal plan and fridge inventory
+  async getShoppingList(): Promise<ShoppingList> {
+    const response = await fetch("/api/shopping");
+    if (!response.ok) {
+      const error = await response.json();
+      throw new Error(error.error || "Failed to fetch shopping list");
     }
     return response.json();
   },
