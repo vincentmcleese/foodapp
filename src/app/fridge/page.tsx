@@ -25,6 +25,7 @@ import { Spinner } from "@/components/ui/spinner";
 
 export default function FridgePage() {
   const [ingredients, setIngredients] = useState<Ingredient[]>([]);
+  const [fridgeItems, setFridgeItems] = useState<FridgeItem[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [isAddDialogOpen, setIsAddDialogOpen] = useState(false);
   const [isEditDialogOpen, setIsEditDialogOpen] = useState(false);
@@ -35,17 +36,22 @@ export default function FridgePage() {
 
   // Fetch ingredients on page load
   useEffect(() => {
-    const fetchIngredients = async () => {
+    const fetchData = async () => {
       try {
-        // This would be replaced with actual API call to get fridge ingredients
-        const response = await fetch("/api/ingredients");
-        const data = await response.json();
-        setIngredients(data);
+        // Fetch ingredients
+        const ingredientsResponse = await fetch("/api/ingredients");
+        const ingredientsData = await ingredientsResponse.json();
+        setIngredients(ingredientsData);
+
+        // Fetch fridge items
+        const fridgeResponse = await fetch("/api/fridge");
+        const fridgeData = await fridgeResponse.json();
+        setFridgeItems(fridgeData);
       } catch (error) {
-        console.error("Error fetching ingredients:", error);
+        console.error("Error fetching data:", error);
         toast({
           title: "Error",
-          description: "Failed to load ingredients",
+          description: "Failed to load data",
           variant: "destructive",
         });
       } finally {
@@ -53,13 +59,57 @@ export default function FridgePage() {
       }
     };
 
-    fetchIngredients();
+    fetchData();
   }, [toast]);
 
   // Handle edit ingredient
-  const handleEditIngredient = (ingredient: Ingredient) => {
-    setSelectedIngredient(ingredient);
-    setIsEditDialogOpen(true);
+  const handleEditIngredient = async (ingredient: Ingredient) => {
+    try {
+      // Find existing fridge items for this ingredient
+      const existingItems = fridgeItems.filter(
+        (item) => item.ingredient_id === ingredient.id
+      );
+
+      if (existingItems.length > 0) {
+        // Use the existing fridge item
+        setSelectedIngredient(ingredient);
+        setIsEditDialogOpen(true);
+      } else {
+        // Create a new fridge item since one doesn't exist
+        const newFridgeItem = {
+          ingredient_id: ingredient.id,
+          quantity: 1,
+          unit: "g",
+        };
+
+        // Add it to the database first
+        const createResponse = await fetch("/api/fridge", {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify(newFridgeItem),
+        });
+
+        if (!createResponse.ok) {
+          throw new Error("Failed to create fridge item");
+        }
+
+        const createdItem = await createResponse.json();
+        setFridgeItems([...fridgeItems, createdItem]);
+
+        // Now use this item for editing
+        setSelectedIngredient(ingredient);
+        setIsEditDialogOpen(true);
+      }
+    } catch (error) {
+      console.error("Error preparing ingredient for edit:", error);
+      toast({
+        title: "Error",
+        description: "Failed to prepare ingredient for editing",
+        variant: "destructive",
+      });
+    }
   };
 
   // Handle delete ingredient
@@ -78,11 +128,22 @@ export default function FridgePage() {
 
       // Refresh the page to show updated data
       router.refresh();
-    } catch (error) {
-      console.error("Error deleting ingredient:", error);
+    } catch (error: any) {
+      // Check if this is an expected error (like ingredient used in meals)
+      const isExpectedError = error.expected === true;
+      const errorMessage = error.message || "Failed to delete ingredient";
+      const isUsedInMeals = errorMessage.includes("used in meals");
+
+      // Only log unexpected errors to console
+      if (!isExpectedError) {
+        console.error("Error deleting ingredient:", error);
+      }
+
       toast({
-        title: "Error",
-        description: "Failed to delete ingredient",
+        title: isUsedInMeals ? "Cannot Delete" : "Error",
+        description: isUsedInMeals
+          ? "This ingredient is used in one or more meals. Remove it from those meals first."
+          : "Failed to delete ingredient",
         variant: "destructive",
       });
     }
@@ -92,8 +153,19 @@ export default function FridgePage() {
   const createFridgeItemFromIngredient = (
     ingredient: Ingredient
   ): FridgeItem => {
+    // First try to find an existing fridge item for this ingredient
+    const existingFridgeItem = fridgeItems.find(
+      (item: FridgeItem) => item.ingredient_id === ingredient.id
+    );
+
+    if (existingFridgeItem) {
+      return existingFridgeItem;
+    }
+
+    // If we couldn't find one, we'll use default values
+    // The form submission will create a new one
     return {
-      id: "", // This will be generated when saved
+      id: `temp-${ingredient.id}`, // Temporary ID to be replaced on save
       ingredient_id: ingredient.id,
       quantity: 1,
       unit: "g",

@@ -1,7 +1,9 @@
 import { NextResponse } from "next/server";
 import { supabaseAdmin } from "@/lib/supabase";
 
-// GET all ingredients
+/**
+ * GET: Fetch all ingredients
+ */
 export async function GET() {
   try {
     const { data, error } = await supabaseAdmin.from("ingredient").select("*");
@@ -18,19 +20,25 @@ export async function GET() {
   }
 }
 
-// POST - Add a new ingredient
+/**
+ * POST: Create a new ingredient
+ */
 export async function POST(request: Request) {
   try {
-    const ingredient = await request.json();
+    const body = await request.json();
 
-    // Validate the input
-    if (!ingredient.name) {
-      return NextResponse.json(
-        { error: "Required field: name" },
-        { status: 400 }
-      );
+    // Validate required fields
+    if (!body.name) {
+      return NextResponse.json({ error: "Name is required" }, { status: 400 });
     }
 
+    // Set default values
+    const ingredient = {
+      name: body.name,
+      image_status: body.image_status || "pending",
+    };
+
+    // Insert into database
     const { data, error } = await supabaseAdmin
       .from("ingredient")
       .insert(ingredient)
@@ -41,9 +49,9 @@ export async function POST(request: Request) {
 
     return NextResponse.json(data);
   } catch (error) {
-    console.error("Error adding ingredient:", error);
+    console.error("Error creating ingredient:", error);
     return NextResponse.json(
-      { error: "Failed to add ingredient" },
+      { error: "Failed to create ingredient" },
       { status: 500 }
     );
   }

@@ -11,6 +11,7 @@ import {
   ShoppingCart,
 } from "lucide-react";
 import { ToastProvider } from "@/components/common/ToastProvider";
+import { Toaster } from "@/components/ui/toaster";
 
 const inter = Inter({ subsets: ["latin"] });
 
@@ -71,6 +72,7 @@ export default function RootLayout({
           ))}
         </footer>
         <ToastProvider />
+        <Toaster />
       </body>
     </html>
   );

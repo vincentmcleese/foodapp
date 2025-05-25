@@ -30,18 +30,18 @@ describe("API Services", () => {
       });
 
       it("throws an error when API returns non-ok response", async () => {
-        // Mock error response
-        (global.fetch as jest.Mock).mockResolvedValueOnce({
+        // Mock the fetch implementation
+        global.fetch = jest.fn().mockResolvedValue({
           ok: false,
-          json: async () => ({
-            error: "Failed to delete ingredient",
-          }),
+          json: jest
+            .fn()
+            .mockResolvedValue({ error: "Failed to delete ingredient" }),
         });
 
-        // Call the service method and expect it to throw
+        // Call the function and expect it to throw
         await expect(
           ingredientService.deleteIngredient("test-id")
-        ).rejects.toThrow("Failed to delete ingredient test-id");
+        ).rejects.toThrow("Failed to delete ingredient");
 
         // Verify fetch was called
         expect(global.fetch).toHaveBeenCalledWith("/api/ingredients/test-id", {

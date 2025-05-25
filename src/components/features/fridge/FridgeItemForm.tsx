@@ -32,7 +32,6 @@ const formSchema = z.object({
     .positive({ message: "Quantity must be positive" }),
   unit: z.string().min(1, { message: "Please select a unit" }),
   expiry_date: z.string().optional(),
-  notes: z.string().optional(),
 });
 
 export type FridgeItem = {
@@ -41,7 +40,7 @@ export type FridgeItem = {
   quantity: number;
   unit: string;
   expiry_date?: string;
-  notes?: string;
+  expires_at?: string;
   ingredient?: {
     id: string;
     name: string;
@@ -69,8 +68,7 @@ export function FridgeItemForm({
       ingredient_id: fridgeItem?.ingredient_id || "",
       quantity: fridgeItem?.quantity || 1,
       unit: fridgeItem?.unit || "g",
-      expiry_date: fridgeItem?.expiry_date || "",
-      notes: fridgeItem?.notes || "",
+      expiry_date: fridgeItem?.expiry_date || fridgeItem?.expires_at || "",
     },
   });
 
@@ -97,20 +95,37 @@ export function FridgeItemForm({
     setIsLoading(true);
     try {
       if (isEditing && fridgeItem) {
-        // Update existing fridge item
-        const response = await fetch(`/api/fridge/${fridgeItem.id}`, {
-          method: "PUT",
-          headers: {
-            "Content-Type": "application/json",
-          },
-          body: JSON.stringify(values),
-        });
+        if (fridgeItem.id.startsWith("temp-")) {
+          // This is a new item that needs to be created
+          const response = await fetch("/api/fridge", {
+            method: "POST",
+            headers: {
+              "Content-Type": "application/json",
+            },
+            body: JSON.stringify(values),
+          });
 
-        if (!response.ok) {
-          throw new Error("Failed to update fridge item");
+          if (!response.ok) {
+            throw new Error("Failed to create fridge item");
+          }
+
+          toast.success("Fridge item added successfully");
+        } else {
+          // Update existing fridge item
+          const response = await fetch(`/api/fridge/${fridgeItem.id}`, {
+            method: "PUT",
+            headers: {
+              "Content-Type": "application/json",
+            },
+            body: JSON.stringify(values),
+          });
+
+          if (!response.ok) {
+            throw new Error("Failed to update fridge item");
+          }
+
+          toast.success("Fridge item updated successfully");
         }
-
-        toast.success("Fridge item updated successfully");
       } else {
         // Create new fridge item
         const response = await fetch("/api/fridge", {
@@ -234,20 +249,6 @@ export function FridgeItemForm({
                     placeholder="Select expiry date"
                     {...field}
                   />
-                </FormControl>
-                <FormMessage />
-              </FormItem>
-            )}
-          />
-
-          <FormField
-            control={form.control}
-            name="notes"
-            render={({ field }) => (
-              <FormItem>
-                <FormLabel>Notes (Optional)</FormLabel>
-                <FormControl>
-                  <Input placeholder="Enter any notes" {...field} />
                 </FormControl>
                 <FormMessage />
               </FormItem>

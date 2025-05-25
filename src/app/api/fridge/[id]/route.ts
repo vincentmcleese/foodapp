@@ -46,10 +46,10 @@ export async function PUT(
   try {
     const { id } = await params;
     const body = await request.json();
-    const { ingredient_id, quantity, unit, expiry_date, notes } = body;
+    const { ingredient_id, quantity, unit, expiry_date } = body;
 
     // Validate that at least one field is being updated
-    if (!ingredient_id && !quantity && !unit && !expiry_date && !notes) {
+    if (!ingredient_id && !quantity && !unit && !expiry_date) {
       return NextResponse.json(
         { error: "No fields to update" },
         { status: 400 }
@@ -61,8 +61,7 @@ export async function PUT(
     if (ingredient_id) updateData.ingredient_id = ingredient_id;
     if (quantity) updateData.quantity = quantity;
     if (unit) updateData.unit = unit;
-    if (expiry_date) updateData.expiry_date = expiry_date;
-    if (notes !== undefined) updateData.notes = notes;
+    if (expiry_date) updateData.expires_at = expiry_date;
 
     const { data, error } = await supabaseAdmin
       .from("fridge_item")

@@ -1,4 +1,4 @@
-import { NextResponse } from "next/server";
+import { NextRequest, NextResponse } from "next/server";
 import { supabaseAdmin } from "@/lib/supabase";
 
 // GET /api/ingredients/[id]
@@ -6,28 +6,35 @@ export async function GET(
   request: Request,
   { params }: { params: Promise<{ id: string }> }
 ) {
-  try {
-    const { id } = await params;
+  // Always await params before accessing properties
+  const { id } = await params;
 
+  try {
     const { data, error } = await supabaseAdmin
       .from("ingredient")
-      .select("*")
+      .select()
       .eq("id", id)
       .single();
 
     if (error) {
-      console.error(`Error fetching ingredient ${id}:`, error);
       return NextResponse.json(
         { error: "Failed to fetch ingredient" },
-        { status: error.code === "PGRST116" ? 404 : 500 }
+        { status: 500 }
       );
     }
 
-    return NextResponse.json(data);
+    if (!data) {
+      return NextResponse.json(
+        { error: "Ingredient not found" },
+        { status: 404 }
+      );
+    }
+
+    return NextResponse.json(data, { status: 200 });
   } catch (error) {
-    console.error("Error in GET /api/ingredients/[id]:", error);
+    console.error("Error fetching ingredient:", error);
     return NextResponse.json(
-      { error: "Internal server error" },
+      { error: "Failed to fetch ingredient" },
       { status: 500 }
     );
   }
@@ -38,10 +45,12 @@ export async function PUT(
   request: Request,
   { params }: { params: Promise<{ id: string }> }
 ) {
-  try {
-    const { id } = await params;
-    const body = await request.json();
+  // Always await params before accessing properties
+  const { id } = await params;
+  const body = await request.json();
 
+  try {
+    // Update the ingredient
     const { data, error } = await supabaseAdmin
       .from("ingredient")
       .update(body)
@@ -50,18 +59,24 @@ export async function PUT(
       .single();
 
     if (error) {
-      console.error(`Error updating ingredient ${id}:`, error);
       return NextResponse.json(
         { error: "Failed to update ingredient" },
         { status: 500 }
       );
     }
 
-    return NextResponse.json(data);
+    if (!data) {
+      return NextResponse.json(
+        { error: "Ingredient not found" },
+        { status: 404 }
+      );
+    }
+
+    return NextResponse.json(data, { status: 200 });
   } catch (error) {
-    console.error("Error in PUT /api/ingredients/[id]:", error);
+    console.error("Error updating ingredient:", error);
     return NextResponse.json(
-      { error: "Internal server error" },
+      { error: "Failed to update ingredient" },
       { status: 500 }
     );
   }
@@ -72,26 +87,28 @@ export async function DELETE(
   request: Request,
   { params }: { params: Promise<{ id: string }> }
 ) {
+  // Always await params before accessing properties
+  const { id } = await params;
+
   try {
-    const { id } = await params;
-
-    // First, check if this ingredient is used in any meals
-    const { data: mealIngredients, error: checkError } = await supabaseAdmin
+    // First check if the ingredient is used in any meals
+    const { data: mealIngredient, error: checkError } = await supabaseAdmin
       .from("meal_ingredient")
-      .select("id")
+      .select()
       .eq("ingredient_id", id)
-      .limit(1);
+      .limit(1)
+      .single();
 
-    if (checkError) {
-      console.error(`Error checking meal_ingredient for ${id}:`, checkError);
+    if (checkError && checkError.code !== "PGRST116") {
+      console.error("Error checking meal ingredients:", checkError);
       return NextResponse.json(
-        { error: "Failed to check if ingredient is in use" },
+        { error: "Internal server error", success: false },
         { status: 500 }
       );
     }
 
-    // If the ingredient is used in a meal, don't allow deletion
-    if (mealIngredients && mealIngredients.length > 0) {
+    // If the ingredient is used in meals, prevent deletion
+    if (mealIngredient) {
       return NextResponse.json(
         {
           error: "Cannot delete ingredient that is used in meals",
@@ -101,26 +118,37 @@ export async function DELETE(
       );
     }
 
-    // Delete from fridge_item first (foreign key constraints)
-    await supabaseAdmin.from("fridge_item").delete().eq("ingredient_id", id);
-
-    // Then delete the ingredient
-    const { error } = await supabaseAdmin
-      .from("ingredient")
+    // Delete from fridge_item first (foreign key constraint)
+    const { error: fridgeError } = await supabaseAdmin
+      .from("fridge_item")
       .delete()
-      .eq("id", id);
+      .eq("ingredient_id", id);
 
-    if (error) {
-      console.error(`Error deleting ingredient ${id}:`, error);
+    if (fridgeError) {
+      console.error("Error deleting from fridge:", fridgeError);
       return NextResponse.json(
-        { error: "Failed to delete ingredient", success: false },
+        { error: "Internal server error", success: false },
         { status: 500 }
       );
     }
 
-    return NextResponse.json({ success: true });
+    // Then delete the ingredient itself
+    const { error: ingredientError } = await supabaseAdmin
+      .from("ingredient")
+      .delete()
+      .eq("id", id);
+
+    if (ingredientError) {
+      console.error("Error deleting ingredient:", ingredientError);
+      return NextResponse.json(
+        { error: "Internal server error", success: false },
+        { status: 500 }
+      );
+    }
+
+    return NextResponse.json({ success: true }, { status: 200 });
   } catch (error) {
-    console.error("Error in DELETE /api/ingredients/[id]:", error);
+    console.error("Error deleting ingredient:", error);
     return NextResponse.json(
       { error: "Internal server error", success: false },
       { status: 500 }
