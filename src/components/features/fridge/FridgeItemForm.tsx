@@ -75,11 +75,13 @@ export type FridgeItem = {
 interface FridgeItemFormProps {
   isEditing?: boolean;
   fridgeItem?: FridgeItem;
+  onSubmitSuccess?: () => void;
 }
 
 export function FridgeItemForm({
   isEditing = false,
   fridgeItem,
+  onSubmitSuccess,
 }: FridgeItemFormProps) {
   const router = useRouter();
   const [ingredients, setIngredients] = useState<Ingredient[]>([]);
@@ -222,9 +224,14 @@ export function FridgeItemForm({
         toast.success("Fridge item added successfully");
       }
 
-      // Redirect back to fridge page
-      router.push("/fridge");
-      router.refresh();
+      // If onSubmitSuccess callback provided, call it first
+      if (onSubmitSuccess) {
+        onSubmitSuccess();
+      } else {
+        // Otherwise fallback to page navigation
+        router.push("/fridge");
+        router.refresh();
+      }
     } catch (error) {
       console.error("Error submitting form:", error);
       toast.error(

@@ -267,7 +267,9 @@ export const ingredientService = {
       const error = await response.json();
       throw new Error(error.error || "Failed to search ingredients");
     }
-    return response.json();
+    const data = await response.json();
+    // Extract the results array from the response
+    return data.results || [];
   },
 
   /**

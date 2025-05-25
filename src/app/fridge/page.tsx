@@ -1,9 +1,9 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback } from "react";
 import { PageLayout } from "@/components/common/PageLayout";
 import { IngredientGrid } from "@/components/features/fridge/IngredientGrid";
-import { AddIngredientForm } from "@/components/features/fridge/AddIngredientForm";
+import { FridgeSearch } from "@/components/features/fridge/FridgeSearch";
 import {
   FridgeItemForm,
   FridgeItem,
@@ -18,7 +18,6 @@ import {
   DialogDescription,
   DialogHeader,
   DialogTitle,
-  DialogTrigger,
 } from "@/components/ui/dialog";
 import { useRouter } from "next/navigation";
 import { Spinner } from "@/components/ui/spinner";
@@ -27,49 +26,55 @@ export default function FridgePage() {
   const [ingredients, setIngredients] = useState<Ingredient[]>([]);
   const [fridgeItems, setFridgeItems] = useState<FridgeItem[]>([]);
   const [isLoading, setIsLoading] = useState(true);
-  const [isAddDialogOpen, setIsAddDialogOpen] = useState(false);
   const [isEditDialogOpen, setIsEditDialogOpen] = useState(false);
   const [selectedIngredient, setSelectedIngredient] =
     useState<Ingredient | null>(null);
   const { toast } = useToast();
   const router = useRouter();
 
+  // Function to fetch data
+  const fetchData = useCallback(async () => {
+    setIsLoading(true);
+    try {
+      // Fetch ingredients
+      const ingredientsResponse = await fetch("/api/ingredients");
+      const ingredientsData = await ingredientsResponse.json();
+
+      // Fetch fridge items
+      const fridgeResponse = await fetch("/api/fridge");
+      const fridgeData = await fridgeResponse.json();
+      setFridgeItems(fridgeData);
+
+      // Filter ingredients to only show those that are in the fridge
+      const fridgeIngredientIds = fridgeData.map(
+        (item: FridgeItem) => item.ingredient_id
+      );
+      const fridgeIngredients = ingredientsData.filter(
+        (ingredient: Ingredient) => fridgeIngredientIds.includes(ingredient.id)
+      );
+      setIngredients(fridgeIngredients);
+    } catch (error) {
+      console.error("Error fetching data:", error);
+      toast({
+        title: "Error",
+        description: "Failed to load data",
+        variant: "destructive",
+      });
+    } finally {
+      setIsLoading(false);
+    }
+  }, [toast]);
+
   // Fetch ingredients on page load
   useEffect(() => {
-    const fetchData = async () => {
-      try {
-        // Fetch ingredients
-        const ingredientsResponse = await fetch("/api/ingredients");
-        const ingredientsData = await ingredientsResponse.json();
-
-        // Fetch fridge items
-        const fridgeResponse = await fetch("/api/fridge");
-        const fridgeData = await fridgeResponse.json();
-        setFridgeItems(fridgeData);
-
-        // Filter ingredients to only show those that are in the fridge
-        const fridgeIngredientIds = fridgeData.map(
-          (item: FridgeItem) => item.ingredient_id
-        );
-        const fridgeIngredients = ingredientsData.filter(
-          (ingredient: Ingredient) =>
-            fridgeIngredientIds.includes(ingredient.id)
-        );
-        setIngredients(fridgeIngredients);
-      } catch (error) {
-        console.error("Error fetching data:", error);
-        toast({
-          title: "Error",
-          description: "Failed to load data",
-          variant: "destructive",
-        });
-      } finally {
-        setIsLoading(false);
-      }
-    };
-
     fetchData();
-  }, [toast]);
+  }, [fetchData]);
+
+  // Handle refresh when an item is added
+  const handleItemAdded = useCallback(() => {
+    console.log("Item added, refreshing data...");
+    fetchData();
+  }, [fetchData]);
 
   // Handle edit ingredient
   const handleEditIngredient = async (ingredient: Ingredient) => {
@@ -135,8 +140,8 @@ export default function FridgePage() {
         description: "Ingredient removed from fridge",
       });
 
-      // Refresh the page to show updated data
-      router.refresh();
+      // Refresh the data
+      handleItemAdded();
     } catch (error: any) {
       // Check if this is an expected error (like ingredient used in meals)
       const isExpectedError = error.expected === true;
@@ -191,27 +196,13 @@ export default function FridgePage() {
     <PageLayout
       title="My Fridge"
       subtitle="Manage your ingredients with a visual approach"
-      actions={
-        <Dialog open={isAddDialogOpen} onOpenChange={setIsAddDialogOpen}>
-          <DialogTrigger asChild>
-            <Button>
-              <PlusIcon className="mr-2 h-4 w-4" /> Add Ingredient
-            </Button>
-          </DialogTrigger>
-          <DialogContent className="sm:max-w-[500px]">
-            <DialogHeader>
-              <DialogTitle>Add to Fridge</DialogTitle>
-              <DialogDescription>
-                Add a new ingredient to your fridge with automatic image
-                generation.
-              </DialogDescription>
-            </DialogHeader>
-            <AddIngredientForm />
-          </DialogContent>
-        </Dialog>
-      }
     >
-      <div className="container mx-auto p-4">
+      <div className="container mx-auto p-4 space-y-6">
+        {/* Search component is now at the top */}
+        <div className="mb-8">
+          <FridgeSearch onItemAdded={handleItemAdded} />
+        </div>
+
         {isLoading ? (
           <div className="flex justify-center items-center min-h-[400px]">
             <Spinner size="xl" />
@@ -220,11 +211,8 @@ export default function FridgePage() {
           <div className="text-center py-10">
             <h3 className="text-xl font-medium mb-2">Your fridge is empty</h3>
             <p className="text-muted-foreground mb-6">
-              Add some ingredients to get started
+              Search for ingredients to add them to your fridge
             </p>
-            <Button onClick={() => setIsAddDialogOpen(true)}>
-              <PlusIcon className="mr-2 h-4 w-4" /> Add Your First Ingredient
-            </Button>
           </div>
         ) : (
           <IngredientGrid
@@ -238,7 +226,16 @@ export default function FridgePage() {
       </div>
 
       {/* Edit Ingredient Dialog */}
-      <Dialog open={isEditDialogOpen} onOpenChange={setIsEditDialogOpen}>
+      <Dialog
+        open={isEditDialogOpen}
+        onOpenChange={(open) => {
+          setIsEditDialogOpen(open);
+          if (!open) {
+            // Refresh data when dialog closes
+            handleItemAdded();
+          }
+        }}
+      >
         <DialogContent className="sm:max-w-[500px]">
           <DialogHeader>
             <DialogTitle>Edit Ingredient</DialogTitle>
@@ -250,6 +247,7 @@ export default function FridgePage() {
             <FridgeItemForm
               isEditing={true}
               fridgeItem={createFridgeItemFromIngredient(selectedIngredient)}
+              onSubmitSuccess={handleItemAdded}
             />
           )}
         </DialogContent>
