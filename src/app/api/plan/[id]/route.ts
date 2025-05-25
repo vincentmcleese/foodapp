@@ -14,7 +14,7 @@ export async function GET(
       .select(
         `
         *,
-        meal:meal_id (id, name, description, image_url, nutrition)
+        meal:meal_id (id, name, description, image_url, image_status, nutrition)
       `
       )
       .eq("id", id)

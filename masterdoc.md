@@ -673,6 +673,11 @@ first we will either tag ingredients as "pantry" or "ingredient" a basic is salt
 We want the fridge page to show things we actually HAVE so we want to see the ingredients and pantry items that we have. pantry items are either IN STOCK or NOT IN STOCK. ingredients have the current quantity and unit.
 the top of the fridge has the search bar as we have now. we can search for an ingredient and then we are asked how much we add. then we add it to the inventory. we only show under the search bar our current ingredient and pantry inventory.
 
+sprint 12 make the search bar the top component of the /fridge page. as a user you just type and search. suggestions show up with the image (small image and name of ingredient). If you finish typing and there's no suggestion the "Add" button adds the new ingredient. If its matched we just add based on the existing match. The add opens a modal with quantity to add if its an ingredient. If we dont know yet (new item) we need to select if its pantry or ingredient. If its a pantry item we just select that its now in stock.
+
+
+sprint 13 make the cards on the plan page int he grid jsut show a thumbnail of the image of the meal if there is a meal planned in that slot. Give the image an overlay and put the name of the meal but not too big because its a very busy UI.
+
 
 ⸻
 

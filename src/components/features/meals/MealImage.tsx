@@ -20,8 +20,8 @@ export function MealImage({
   name,
   status = "completed",
   className,
-  width = 240,
-  height = 160,
+  width,
+  height,
 }: MealImageProps) {
   const [isLoading, setIsLoading] = useState(true);
 
@@ -41,14 +41,15 @@ export function MealImage({
   return (
     <div
       className={cn("relative rounded-md overflow-hidden bg-muted", className)}
-      style={{ width, height }}
+      style={width || height ? { width, height } : undefined}
     >
       {hasImage && (
         <Image
           src={imageUrl as string}
           alt={`Image of ${name}`}
           fill
-          sizes={`${Math.max(width, height)}px`}
+          sizes="100vw"
+          priority
           className={cn(
             "object-cover transition-opacity duration-300",
             isLoading ? "opacity-0" : "opacity-100"

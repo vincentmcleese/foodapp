@@ -6,6 +6,14 @@ import { Card } from "@/components/common/Card";
 import { Button } from "@/components/ui/button";
 import { PlusIcon, EditIcon, TrashIcon, CalendarIcon } from "lucide-react";
 import { format, addDays } from "date-fns";
+import { MealImage } from "../meals/MealImage";
+import { cn } from "@/lib/utils";
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipProvider,
+  TooltipTrigger,
+} from "@/components/ui/tooltip";
 
 interface PlanCalendarProps {
   entries: PlanEntry[];
@@ -142,21 +150,12 @@ export function PlanCalendar({
                           onDelete={() => onDeleteEntry(entry.id)}
                         />
                       ))}
-                      <Button
-                        size="sm"
-                        variant="ghost"
-                        className="w-full justify-center"
-                        onClick={() => handleDayClick(day, mealType)}
-                      >
-                        <PlusIcon className="w-4 h-4 mr-1" />
-                        Add meal
-                      </Button>
                     </div>
                   ) : (
                     // Empty slot
                     <Card
                       variant="outlined"
-                      className="min-h-[100px] flex flex-col items-center justify-center p-4 hover:border-primary/50 transition-colors"
+                      className="min-h-[100px] flex flex-col items-center justify-center p-4 hover:border-primary/50 transition-colors cursor-pointer"
                       onClick={() => handleDayClick(day, mealType)}
                     >
                       <PlusIcon className="w-5 h-5 text-neutral-400 mb-2" />
@@ -180,48 +179,113 @@ interface MealCardProps {
 }
 
 function MealCard({ entry, onEdit, onDelete }: MealCardProps) {
+  const [isHovered, setIsHovered] = useState(false);
+  const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
+
+  const handleDeleteClick = () => {
+    setShowDeleteConfirm(true);
+  };
+
+  const handleCancelDelete = () => {
+    setShowDeleteConfirm(false);
+  };
+
   return (
-    <Card className="p-4 relative group hover:shadow-md transition-all">
-      {/* Meal information */}
-      <div className="mb-3">
-        <h4 className="font-medium text-neutral-800 text-base">
-          {entry.meal?.name || "Unnamed meal"}
-        </h4>
-        {entry.meal?.description && (
-          <p className="text-neutral-600 text-sm mt-1 line-clamp-2">
-            {entry.meal.description}
-          </p>
+    <div
+      onMouseEnter={() => setIsHovered(true)}
+      onMouseLeave={() => setIsHovered(false)}
+      className="h-full"
+    >
+      <Card
+        className={cn(
+          "group relative overflow-hidden transition-all duration-300 hover:shadow-md h-full flex flex-col",
+          isHovered ? "ring-2 ring-primary" : ""
         )}
-      </div>
+      >
+        <div className="p-0 flex flex-col h-full">
+          {/* Image container with fixed aspect ratio */}
+          <div className="w-full aspect-video overflow-hidden">
+            <MealImage
+              imageUrl={entry.meal?.image_url}
+              name={entry.meal?.name || "Unnamed meal"}
+              status={entry.meal?.image_status || "completed"}
+              className="w-full h-full"
+            />
+          </div>
+          <div className="bg-white p-2 flex-grow">
+            <h3 className="text-sm font-medium text-center truncate">
+              {entry.meal?.name || "Unnamed meal"}
+            </h3>
+          </div>
+        </div>
 
-      {/* Action buttons in a footer */}
-      <div className="flex justify-between items-center pt-2 border-t border-neutral-200">
-        <Button
-          variant="outline"
-          size="sm"
-          className="h-8 px-2 text-xs"
-          onClick={(e) => {
-            e.stopPropagation();
-            onEdit();
-          }}
+        {/* Action buttons that appear on hover */}
+        <div
+          className={cn(
+            "absolute top-2 right-2 flex gap-1 transition-opacity duration-200",
+            isHovered ? "opacity-100" : "opacity-0"
+          )}
         >
-          <EditIcon className="h-3.5 w-3.5 mr-1" />
-          Edit
-        </Button>
+          <TooltipProvider>
+            {showDeleteConfirm ? (
+              <div className="flex gap-1">
+                <Button
+                  variant="destructive"
+                  size="sm"
+                  aria-label="Confirm deletion"
+                  onClick={() => onDelete()}
+                >
+                  Confirm
+                </Button>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  aria-label="Cancel deletion"
+                  onClick={handleCancelDelete}
+                >
+                  Cancel
+                </Button>
+              </div>
+            ) : (
+              <>
+                <Tooltip>
+                  <TooltipTrigger asChild>
+                    <Button
+                      variant="outline"
+                      size="icon"
+                      className="h-7 w-7 bg-background/80 backdrop-blur-sm"
+                      onClick={() => onEdit()}
+                      aria-label={`Edit ${entry.meal?.name || "meal"}`}
+                    >
+                      <EditIcon className="h-3.5 w-3.5" />
+                    </Button>
+                  </TooltipTrigger>
+                  <TooltipContent>
+                    <p>Edit</p>
+                  </TooltipContent>
+                </Tooltip>
 
-        <Button
-          variant="destructive"
-          size="sm"
-          className="h-8 px-2 text-xs bg-red-600 hover:bg-red-700"
-          onClick={(e) => {
-            e.stopPropagation();
-            onDelete();
-          }}
-        >
-          <TrashIcon className="h-3.5 w-3.5 mr-1" />
-          Delete
-        </Button>
-      </div>
-    </Card>
+                <Tooltip>
+                  <TooltipTrigger asChild>
+                    <Button
+                      variant="outline"
+                      size="icon"
+                      className="h-7 w-7 bg-background/80 backdrop-blur-sm text-destructive hover:text-destructive"
+                      onClick={handleDeleteClick}
+                      aria-label={`Delete ${entry.meal?.name || "meal"}`}
+                    >
+                      <TrashIcon className="h-3.5 w-3.5" />
+                    </Button>
+                  </TooltipTrigger>
+                  <TooltipContent>
+                    <p>Delete</p>
+                  </TooltipContent>
+                </Tooltip>
+              </>
+            )}
+          </TooltipProvider>
+        </div>
+      </Card>
+    </div>
   );
 }

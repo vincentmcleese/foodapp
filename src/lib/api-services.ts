@@ -65,7 +65,14 @@ export interface PlanEntry {
   meal_type: string; // 'breakfast', 'lunch', 'dinner', 'snack'
   created_at?: string;
   updated_at?: string;
-  meal?: Meal;
+  meal?: {
+    id: string;
+    name: string;
+    description?: string;
+    image_url?: string;
+    image_status?: string;
+    nutrition?: any;
+  };
 }
 
 export interface HealthPrinciple {

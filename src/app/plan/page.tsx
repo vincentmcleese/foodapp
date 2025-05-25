@@ -23,6 +23,7 @@ const mockPlanEntries: PlanEntry[] = [
       name: "Mock Breakfast",
       description: "A sample breakfast for development",
       image_url: undefined,
+      image_status: "completed",
       nutrition: { calories: 400, protein: 20, carbs: 40, fat: 15 },
     },
   },
@@ -38,6 +39,7 @@ const mockPlanEntries: PlanEntry[] = [
       name: "Mock Lunch",
       description: "A sample lunch for development",
       image_url: undefined,
+      image_status: "completed",
       nutrition: { calories: 600, protein: 30, carbs: 60, fat: 20 },
     },
   },
@@ -54,7 +56,7 @@ export default async function PlanPage() {
       .select(
         `
         *,
-        meal:meal_id (id, name, description, image_url, nutrition)
+        meal:meal_id (id, name, description, image_url, image_status, nutrition)
       `
       )
       .order("date", { ascending: true });
