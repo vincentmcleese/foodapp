@@ -261,8 +261,8 @@ describe("Meal Recommendations API", () => {
 
     // Assertions
     expect(supabaseAdmin.from).toHaveBeenCalledWith("meal");
-    expect(supabaseAdmin.from).toHaveBeenCalledWith("ingredient");
     expect(supabaseAdmin.from).toHaveBeenCalledWith("meal_ingredient");
+    expect(supabaseAdmin.from).toHaveBeenCalledWith("ingredient");
 
     // Check response
     expect(response.status).toBe(200);

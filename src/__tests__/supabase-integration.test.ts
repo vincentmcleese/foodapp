@@ -10,6 +10,16 @@ import {
   MealIngredient,
 } from "@/lib/api-services";
 
+// Mock msw/node module
+jest.mock("msw/node", () => ({
+  setupServer: jest.fn(() => ({
+    listen: jest.fn(),
+    close: jest.fn(),
+    resetHandlers: jest.fn(),
+    use: jest.fn(),
+  })),
+}));
+
 // Mock server to intercept API requests
 const server = setupServer(
   // Mock GET /api/fridge

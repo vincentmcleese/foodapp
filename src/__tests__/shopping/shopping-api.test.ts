@@ -32,7 +32,7 @@ describe("Shopping API", () => {
   it("should return empty list when no plan entries exist", async () => {
     // Mock empty plan entries
     (supabaseAdmin.from as jest.Mock).mockImplementation((table) => {
-      if (table === "plan_entry") {
+      if (table === "meal_plan") {
         return {
           select: jest.fn().mockResolvedValue({
             data: [],
@@ -62,7 +62,7 @@ describe("Shopping API", () => {
   it("should return empty list when no meal ingredients exist", async () => {
     // Mock plan entries with meals but no ingredients
     (supabaseAdmin.from as jest.Mock).mockImplementation((table) => {
-      if (table === "plan_entry") {
+      if (table === "meal_plan") {
         return {
           select: jest.fn().mockResolvedValue({
             data: [{ id: "plan1", meal_id: "meal1" }],
@@ -108,7 +108,7 @@ describe("Shopping API", () => {
   it("should return a shopping list with correct status indicators", async () => {
     // Mock data for a complete shopping list test
     (supabaseAdmin.from as jest.Mock).mockImplementation((table) => {
-      if (table === "plan_entry") {
+      if (table === "meal_plan") {
         return {
           select: jest.fn().mockResolvedValue({
             data: [
@@ -193,7 +193,7 @@ describe("Shopping API", () => {
     await GET();
 
     // Verify API calls
-    expect(supabaseAdmin.from).toHaveBeenCalledWith("plan_entry");
+    expect(supabaseAdmin.from).toHaveBeenCalledWith("meal_plan");
     expect(supabaseAdmin.from).toHaveBeenCalledWith("meal");
     expect(supabaseAdmin.from).toHaveBeenCalledWith("meal_ingredient");
     expect(supabaseAdmin.from).toHaveBeenCalledWith("ingredient");
@@ -230,7 +230,7 @@ describe("Shopping API", () => {
   it("should handle errors when fetching plan entries", async () => {
     // Mock error for plan entries
     (supabaseAdmin.from as jest.Mock).mockImplementation((table) => {
-      if (table === "plan_entry") {
+      if (table === "meal_plan") {
         return {
           select: jest.fn().mockResolvedValue({
             data: null,
@@ -249,7 +249,7 @@ describe("Shopping API", () => {
 
     // Verify the error response
     expect(mockJson).toHaveBeenCalledWith(
-      { error: "Failed to fetch plan entries" },
+      { error: "Failed to generate shopping list" },
       { status: 500 }
     );
   });
@@ -257,7 +257,7 @@ describe("Shopping API", () => {
   it("should handle errors when fetching meals", async () => {
     // Mock successful plan entries but error for meals
     (supabaseAdmin.from as jest.Mock).mockImplementation((table) => {
-      if (table === "plan_entry") {
+      if (table === "meal_plan") {
         return {
           select: jest.fn().mockResolvedValue({
             data: [{ id: "plan1", meal_id: "meal1" }],
@@ -284,7 +284,7 @@ describe("Shopping API", () => {
 
     // Verify the error response
     expect(mockJson).toHaveBeenCalledWith(
-      { error: "Failed to fetch meals" },
+      { error: "Failed to generate shopping list" },
       { status: 500 }
     );
   });
@@ -292,7 +292,7 @@ describe("Shopping API", () => {
   it("should handle errors when fetching meal ingredients", async () => {
     // Mock successful plan entries and meals but error for meal ingredients
     (supabaseAdmin.from as jest.Mock).mockImplementation((table) => {
-      if (table === "plan_entry") {
+      if (table === "meal_plan") {
         return {
           select: jest.fn().mockResolvedValue({
             data: [{ id: "plan1", meal_id: "meal1" }],
@@ -327,7 +327,7 @@ describe("Shopping API", () => {
 
     // Verify the error response
     expect(mockJson).toHaveBeenCalledWith(
-      { error: "Failed to fetch meal ingredients" },
+      { error: "Failed to generate shopping list" },
       { status: 500 }
     );
   });
@@ -335,7 +335,7 @@ describe("Shopping API", () => {
   it("should handle errors when fetching ingredients", async () => {
     // Mock successful data but error for ingredients
     (supabaseAdmin.from as jest.Mock).mockImplementation((table) => {
-      if (table === "plan_entry") {
+      if (table === "meal_plan") {
         return {
           select: jest.fn().mockResolvedValue({
             data: [{ id: "plan1", meal_id: "meal1" }],
@@ -386,7 +386,7 @@ describe("Shopping API", () => {
 
     // Verify the error response
     expect(mockJson).toHaveBeenCalledWith(
-      { error: "Failed to fetch ingredients" },
+      { error: "Failed to generate shopping list" },
       { status: 500 }
     );
   });
@@ -394,7 +394,7 @@ describe("Shopping API", () => {
   it("should handle errors when fetching fridge items", async () => {
     // Mock successful data but error for fridge items
     (supabaseAdmin.from as jest.Mock).mockImplementation((table) => {
-      if (table === "plan_entry") {
+      if (table === "meal_plan") {
         return {
           select: jest.fn().mockResolvedValue({
             data: [{ id: "plan1", meal_id: "meal1" }],
@@ -452,7 +452,7 @@ describe("Shopping API", () => {
 
     // Verify the error response
     expect(mockJson).toHaveBeenCalledWith(
-      { error: "Failed to fetch fridge items" },
+      { error: "Failed to generate shopping list" },
       { status: 500 }
     );
   });

@@ -668,6 +668,12 @@ When we discover or view meal cards we would like to see an image. We would like
 . The process will work just as ingredients (see sprint 9)with the same prompt but the variable is the title of the meal. Save the image in supabase and keep it connected to a saved meal so we always see it in the meal card on /meal
 
 
+sprint 11 we would like to make the fridge more intuitive.
+first we will either tag ingredients as "pantry" or "ingredient" a basic is salt, pepper, herbs, oil, etc. these are not things we put on our shopping list but just expect to have in the pantry.
+We want the fridge page to show things we actually HAVE so we want to see the ingredients and pantry items that we have. pantry items are either IN STOCK or NOT IN STOCK. ingredients have the current quantity and unit.
+the top of the fridge has the search bar as we have now. we can search for an ingredient and then we are asked how much we add. then we add it to the inventory. we only show under the search bar our current ingredient and pantry inventory.
+
+
 ⸻
 
 7. Implementation Progress

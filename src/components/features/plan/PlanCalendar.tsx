@@ -5,7 +5,7 @@ import { PlanEntry } from "@/lib/api-services";
 import { Card } from "@/components/common/Card";
 import { Button } from "@/components/ui/button";
 import { PlusIcon, EditIcon, TrashIcon, CalendarIcon } from "lucide-react";
-import { format, startOfWeek, addDays } from "date-fns";
+import { format, addDays } from "date-fns";
 
 interface PlanCalendarProps {
   entries: PlanEntry[];
@@ -34,13 +34,24 @@ export function PlanCalendar({
 
   // Get the current week's start date (Monday)
   const getCurrentWeekDates = () => {
-    // Start with Sunday as day 0, then adjust to get Monday
+    // Start with current date and find the most recent Monday
     const now = new Date();
-    const startOfCurrentWeek = startOfWeek(now, { weekStartsOn: 1 }); // 1 = Monday
+    const day = now.getDay(); // 0 = Sunday, 1 = Monday, etc.
+
+    // Calculate days to subtract to get to Monday (if today is Sunday, subtract 6 days)
+    const daysToSubtract = day === 0 ? 6 : day - 1;
+
+    // Get Monday by subtracting the appropriate number of days
+    const monday = new Date(now);
+    monday.setDate(now.getDate() - daysToSubtract);
+
+    // Reset to midnight
+    monday.setHours(0, 0, 0, 0);
 
     // Create mapping of day names to actual dates for this week
     return days.reduce((acc, day, index) => {
-      const date = addDays(startOfCurrentWeek, index);
+      const date = new Date(monday);
+      date.setDate(monday.getDate() + index);
       acc[day] = date;
       return acc;
     }, {} as Record<string, Date>);

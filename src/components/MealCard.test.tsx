@@ -50,8 +50,10 @@ describe("MealCard", () => {
   it("renders meal information correctly", () => {
     render(<MealCard meal={mockMeal} />);
 
-    // Check if basic meal information is displayed
-    expect(screen.getByText("Spaghetti Bolognese")).toBeInTheDocument();
+    // Check if basic meal information is displayed - use a more specific query
+    expect(
+      screen.getByRole("heading", { name: "Spaghetti Bolognese" })
+    ).toBeInTheDocument();
     expect(screen.getByText("Classic Italian pasta dish")).toBeInTheDocument();
 
     // Check if nutrition information is displayed
@@ -145,9 +147,11 @@ describe("MealCard", () => {
     // Find the image element
     const imageElement = screen.getByRole("img");
     expect(imageElement).toBeInTheDocument();
+
+    // Next.js Image component transforms URLs, so just check that it contains the original URL
     expect(imageElement).toHaveAttribute(
       "src",
-      "https://example.com/image.jpg"
+      expect.stringContaining("example.com/image.jpg")
     );
     expect(imageElement).toHaveAttribute("alt", "Spaghetti Bolognese");
   });

@@ -165,7 +165,7 @@ describe("FridgePage", () => {
   it("handles API error when loading ingredients", async () => {
     // Mock fetch to return an error that will trigger the catch block
     (global.fetch as jest.Mock).mockRejectedValue(
-      new Error("Failed to load ingredients")
+      new Error("Failed to load data")
     );
 
     render(<FridgePage />);
@@ -174,7 +174,7 @@ describe("FridgePage", () => {
     await waitFor(() => {
       expect(mockToast.toast).toHaveBeenCalledWith({
         title: "Error",
-        description: "Failed to load ingredients",
+        description: "Failed to load data",
         variant: "destructive",
       });
     });
