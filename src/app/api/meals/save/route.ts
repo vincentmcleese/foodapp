@@ -106,6 +106,8 @@ export async function POST(request: Request) {
             name: ing.name,
             // Add default nutrition data or leave empty for now
             nutrition: null,
+            // Set default image status to pending
+            image_status: "pending",
           })
         );
 
@@ -122,9 +124,47 @@ export async function POST(request: Request) {
           );
         }
 
-        // Add newly created ingredients to the map
-        (newIngredients || []).forEach((ing: { id: string; name: string }) => {
+        // Add newly created ingredients to the map and track them for image generation
+        const newIngredientsToProcess = [];
+        for (const ing of newIngredients || []) {
           existingIngredientMap.set(ing.name.toLowerCase(), ing.id);
+          newIngredientsToProcess.push({
+            id: ing.id,
+            name: ing.name,
+          });
+        }
+
+        // Queue image generation with delay to avoid rate limits
+        // Process each ingredient one at a time with delays between requests
+        (async () => {
+          for (const ing of newIngredientsToProcess) {
+            try {
+              // Add a 2-second delay between each request to avoid rate limits
+              await new Promise((resolve) => setTimeout(resolve, 2000));
+
+              const fullUrl = new URL(
+                "/api/ingredients/generate-image",
+                request.url
+              ).toString();
+
+              await fetch(fullUrl, {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({ ingredientId: ing.id, name: ing.name }),
+              });
+
+              console.log(
+                `Image generation requested for ingredient: ${ing.name}`
+              );
+            } catch (error) {
+              console.error(
+                `Error requesting image generation for ${ing.name}:`,
+                error
+              );
+            }
+          }
+        })().catch((error) => {
+          console.error("Error in sequential image generation:", error);
         });
       }
 

@@ -19,17 +19,54 @@ export async function generateIngredientImage(
 
     console.log(`Generating image for ingredient: ${ingredientName}`);
 
-    // Call DALL-E API
-    const response = await openai.images.generate({
-      model: "dall-e-3",
-      prompt,
-      n: 1,
-      size: "1024x1024",
-      quality: "standard",
-    });
+    // Implement retry logic with exponential backoff
+    const MAX_RETRIES = 3;
+    let retries = 0;
+    let response: OpenAI.Images.ImagesResponse | undefined;
+
+    while (retries < MAX_RETRIES) {
+      try {
+        // Call DALL-E API
+        response = await openai.images.generate({
+          model: "dall-e-3",
+          prompt,
+          n: 1,
+          size: "1024x1024",
+          quality: "standard",
+        });
+
+        // If successful, break out of retry loop
+        break;
+      } catch (error: any) {
+        // Check if it's a rate limit error
+        if (error?.status === 429) {
+          retries++;
+          if (retries >= MAX_RETRIES) {
+            console.error(
+              `Rate limit hit, max retries (${MAX_RETRIES}) exceeded for ${ingredientName}`
+            );
+            throw error;
+          }
+
+          // Calculate exponential backoff time: 2^retries seconds (2, 4, 8, etc.)
+          const backoffTime = Math.pow(2, retries) * 1000;
+          console.log(
+            `Rate limit hit, retrying in ${
+              backoffTime / 1000
+            } seconds for ${ingredientName}`
+          );
+
+          // Wait before retrying
+          await new Promise((resolve) => setTimeout(resolve, backoffTime));
+        } else {
+          // Not a rate limit error, rethrow
+          throw error;
+        }
+      }
+    }
 
     // Safely extract URL from response
-    if (!response.data || response.data.length === 0) {
+    if (!response || !response.data || response.data.length === 0) {
       console.error("No image data returned from DALL-E API");
       return null;
     }
