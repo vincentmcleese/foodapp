@@ -65,6 +65,16 @@ The component library is organized in a tiered approach:
 
 3. **Feature Components (`/components/features/[feature]`)**: Domain-specific components for each feature area (meals, fridge, plan, etc.).
 
+## Shadcn/UI Component Gotchas
+
+When using shadcn/ui components, be aware of these common issues:
+
+1. **Command Component**: The Command component has its own internal filtering logic. When implementing custom search functionality with external state management, avoid using CommandEmpty and implement a custom rendering function instead to ensure search results display correctly.
+
+2. **Custom Inputs**: Always maintain consistency with the existing design system when customizing shadcn components. Use the established loading spinner, input styles, and visual patterns.
+
+3. **Form Controls**: Ensure all form elements maintain accessibility and consistent styling across the application.
+
 ## Design Tokens (`/styles/tokens.ts`)
 
 The design system is built on a set of tokens that define:
@@ -162,6 +172,38 @@ import { PlusIcon } from 'lucide-react'
 // Full width
 <Button fullWidth>Full width button</Button>
 ```
+
+## Spinner Component
+
+The Spinner component provides a standardized loading indicator across the application:
+
+```tsx
+import { Spinner } from '@/components/ui/spinner'
+
+// Default spinner (medium size)
+<Spinner />
+
+// Small spinner
+<Spinner size="sm" />
+
+// Large spinner
+<Spinner size="lg" />
+
+// Extra large spinner
+<Spinner size="xl" />
+
+// With custom classes
+<Spinner className="text-primary" />
+```
+
+Size reference:
+
+- `sm`: 16px × 16px (h-4 w-4)
+- `md`: 24px × 24px (h-6 w-6)
+- `lg`: 32px × 32px (h-8 w-8)
+- `xl`: 48px × 48px (h-12 w-12)
+
+Always use this shared Spinner component for all loading states rather than creating custom spinners to ensure visual consistency.
 
 ## Feature Components
 
@@ -582,6 +624,44 @@ Sprint	Feature / Requirement	Test Focus	Demo Criteria	Status
 6	Required ingredients list from week's meal plan in shop page like a shoppoing list with fridge integration	Unit & integration tests for aggregation logic and status flags	Missing vs. in-stock ingredients list correctly generated based on current fridge inventory	Completed
 7	Meal rating feature (like/dislike)	Unit & integration tests for rating persistence and UI updates	Users can rate meals; ratings are stored and displayed on the Meals page	Completed
 8	AI assistant on meals page: we would like a feature that recommends new meals based on fridge, preferences, and science principles. The feature should be a button that says "Discover" and it opens a new page to allow discover of new meals - show richcontent beautiful mealcards that contain recommendations from the LLM (smart prompt based on the criteria mentioned above). Include lots of data including ingredients, prep time, etc so we can filter. There should be a way to load more. If you "save" or "add" a recommendation it should be added to your meals in the /meals page.	Integration tests for AI endpoint and interactive UI suggestions
+
+9 Fridge page UI improvement. As a user I would like the fridge page to feel more playful and gamified.
+
+As a user, I want the Fridge page to feel more playful and visual, so that managing ingredients feels fun, intuitive, and engaging.
+
+⸻
+
+🎯 Acceptance Criteria
+	•	When a user adds a new ingredient to their fridge, the UI performs a fuzzy search.
+	•	If there's a close match in the system, it's selected automatically.
+	•	If no match is found, the ingredient is added as a new entry.
+	•	A loading indicator appears while a DALL·E-generated image is being created for the new ingredient.
+	•	Once generated, the image is displayed at the top of the fridge list.
+	•	All ingredient images are cached (stored on Supabase or equivalent) and reused for future renders.
+	•	The fridge page displays ingredients using their cached image tiles in a visually appealing way.
+
+For the image generation prompt we will use the follwoing text:
+A photorealistic, high-resolution food photograph of a {INSERT INGREDIENT HERE}, elegantly plated on a round, off-white, lightly speckled ceramic plate. The plate sits centered on a warm, medium-tone wooden table with visible wood grain. The image is captured from a top-down (90-degree overhead) angle with soft, natural lighting from the top left. Use shallow depth of field, neutral shadows, and a clean white background outside the plate. The composition should follow consistent proportions: plate fills 80% of the frame, centered precisely. The overall style matches high-end editorial food photography.
+
+⸻
+
+🎨 UX Goals
+	•	Make the Fridge page feel like a playful inventory system.
+	•	Show ingredients as image tiles, possibly draggable or sortable.
+	•	Ensure the image generation and loading experience is smooth, quick, and non-blocking.
+
+⸻
+
+🧠 Technical Notes
+	•	Use DALL·E API (model: dall-e-3) to generate the image with a standardized food image prompt.
+	•	Save the image to Supabase Storage (we need to set this up)
+	•	Reference the image URL via the ingredient's database record (e.g. ingredient.image_url).
+	•	Consider rate-limiting or batching image generations to avoid hitting API limits or slow UX.
+	•	Follow Next.js best practices for image handling:
+	•	Use next/image for optimized rendering.
+	•	Set caching headers via CDN or Vercel configuration.
+	•	Use low-quality image placeholders (LQIP) if needed.
+
 
 
 ⸻

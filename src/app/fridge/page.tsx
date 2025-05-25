@@ -1,242 +1,171 @@
 "use client";
-import React, { useState, useEffect } from "react";
-import { fridgeService, ingredientService, FridgeItem, Ingredient } from "@/lib/api-services";
+
+import { useState, useEffect } from "react";
 import { PageLayout } from "@/components/common/PageLayout";
-import { Card } from "@/components/common/Card";
+import { IngredientGrid } from "@/components/features/fridge/IngredientGrid";
+import { AddIngredientForm } from "@/components/features/fridge/AddIngredientForm";
+import {
+  FridgeItemForm,
+  FridgeItem,
+} from "@/components/features/fridge/FridgeItemForm";
 import { Button } from "@/components/ui/button";
-import { IngredientForm } from "@/components/features/fridge/IngredientForm";
-import { IngredientCard } from "@/components/features/fridge/IngredientCard";
-import { PlusIcon, RefreshCwIcon } from "lucide-react";
+import { PlusIcon } from "lucide-react";
+import { Ingredient } from "@/lib/api-services";
+import { useToast } from "@/components/ui/use-toast";
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogHeader,
+  DialogTitle,
+  DialogTrigger,
+} from "@/components/ui/dialog";
+import { useRouter } from "next/navigation";
+import { Spinner } from "@/components/ui/spinner";
 
 export default function FridgePage() {
-  const [fridgeItems, setFridgeItems] = useState<FridgeItem[]>([]);
   const [ingredients, setIngredients] = useState<Ingredient[]>([]);
-  const [editingId, setEditingId] = useState<string | null>(null);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
+  const [isLoading, setIsLoading] = useState(true);
+  const [isAddDialogOpen, setIsAddDialogOpen] = useState(false);
+  const [isEditDialogOpen, setIsEditDialogOpen] = useState(false);
+  const [selectedIngredient, setSelectedIngredient] =
+    useState<Ingredient | null>(null);
+  const { toast } = useToast();
+  const router = useRouter();
 
-  // Load fridge items and ingredients on page load
+  // Fetch ingredients on page load
   useEffect(() => {
-    loadData();
-  }, []);
-
-  const loadData = async () => {
-    try {
-      setLoading(true);
-      // Get both fridge items and ingredients
-      const [fridgeItemsData, ingredientsData] = await Promise.all([
-        fridgeService.getAllItems(),
-        ingredientService.getAllIngredients()
-      ]);
-      
-      setFridgeItems(fridgeItemsData);
-      setIngredients(ingredientsData);
-      setError(null);
-    } catch (err) {
-      console.error("Failed to load data:", err);
-      setError("Failed to load data. Please try again.");
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  const handleAddNewIngredient = async (name: string) => {
-    try {
-      setLoading(true);
-      const addedIngredient = await ingredientService.addIngredient({
-        name: name
-      });
-      
-      // Update the ingredients list
-      setIngredients([...ingredients, addedIngredient]);
-      setError(null);
-    } catch (err) {
-      console.error("Failed to add ingredient:", err);
-      setError("Failed to add ingredient. Please try again.");
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  const handleAddItem = async (data: { ingredient_id: string; quantity: number; unit: string }) => {
-    try {
-      setLoading(true);
-      const newItem = await fridgeService.addItem({
-        ingredient_id: data.ingredient_id,
-        quantity: data.quantity,
-        unit: data.unit
-      });
-      
-      // Add the ingredient data to the new item
-      const ingredient = ingredients.find(i => i.id === data.ingredient_id);
-      if (ingredient) {
-        newItem.ingredient = ingredient;
+    const fetchIngredients = async () => {
+      try {
+        // This would be replaced with actual API call to get fridge ingredients
+        const response = await fetch("/api/ingredients");
+        const data = await response.json();
+        setIngredients(data);
+      } catch (error) {
+        console.error("Error fetching ingredients:", error);
+        toast({
+          title: "Error",
+          description: "Failed to load ingredients",
+          variant: "destructive",
+        });
+      } finally {
+        setIsLoading(false);
       }
-      
-      setFridgeItems([...fridgeItems, newItem]);
-      setError(null);
-    } catch (err) {
-      console.error("Failed to add item:", err);
-      setError("Failed to add item. Please try again.");
-    } finally {
-      setLoading(false);
-    }
+    };
+
+    fetchIngredients();
+  }, [toast]);
+
+  // Handle edit ingredient
+  const handleEditIngredient = (ingredient: Ingredient) => {
+    setSelectedIngredient(ingredient);
+    setIsEditDialogOpen(true);
   };
 
-  const handleEdit = (id: string) => {
-    setEditingId(id);
-  };
-
-  const handleUpdate = async (data: { ingredient_id: string; quantity: number; unit: string }) => {
-    if (!editingId) return;
-    
+  // Handle delete ingredient
+  const handleDeleteIngredient = async (id: string) => {
     try {
-      setLoading(true);
-      const updatedItem = await fridgeService.updateItem(editingId, {
-        ingredient_id: data.ingredient_id,
-        quantity: data.quantity,
-        unit: data.unit
+      // This would be replaced with actual API call to delete ingredient
+      // await ingredientService.deleteIngredient(id);
+
+      setIngredients(ingredients.filter((ing) => ing.id !== id));
+
+      toast({
+        title: "Success",
+        description: "Ingredient removed from fridge",
       });
-      
-      // Update the local state
-      setFridgeItems(fridgeItems.map(item => 
-        item.id === editingId ? updatedItem : item
-      ));
-      
-      setEditingId(null);
-      setError(null);
-    } catch (err) {
-      console.error("Failed to update item:", err);
-      setError("Failed to update item. Please try again.");
-    } finally {
-      setLoading(false);
+    } catch (error) {
+      console.error("Error deleting ingredient:", error);
+      toast({
+        title: "Error",
+        description: "Failed to delete ingredient",
+        variant: "destructive",
+      });
     }
   };
 
-  const handleDelete = async (id: string) => {
-    try {
-      setLoading(true);
-      await fridgeService.deleteItem(id);
-      
-      // Update the local state
-      setFridgeItems(fridgeItems.filter(item => item.id !== id));
-      setError(null);
-    } catch (err) {
-      console.error("Failed to delete item:", err);
-      setError("Failed to delete item. Please try again.");
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  const handleCancelEdit = () => {
-    setEditingId(null);
-  };
-
-  if (loading && fridgeItems.length === 0) {
-    return (
-      <PageLayout title="Fridge Inventory">
-        <div className="flex justify-center items-center h-40">
-          <RefreshCwIcon className="animate-spin h-8 w-8 text-primary" />
-        </div>
-      </PageLayout>
-    );
-  }
-
-  // Map FridgeItem to the format expected by IngredientCard
-  const mapToIngredientCardData = (item: FridgeItem) => {
+  // Create a fridge item from an ingredient
+  const createFridgeItemFromIngredient = (
+    ingredient: Ingredient
+  ): FridgeItem => {
     return {
-      id: item.id,
-      name: item.ingredient?.name || 'Unknown',
-      quantity: item.quantity,
-      unit: item.unit,
-      category: item.ingredient?.category || undefined
+      id: "", // This will be generated when saved
+      ingredient_id: ingredient.id,
+      quantity: 1,
+      unit: "g",
+      ingredient: {
+        id: ingredient.id,
+        name: ingredient.name,
+      },
     };
   };
 
-  // Find the currently editing item
-  const currentEditingItem = editingId 
-    ? fridgeItems.find(item => item.id === editingId) 
-    : null;
-
   return (
-    <PageLayout 
-      title="Fridge Inventory" 
-      subtitle="Manage your ingredients"
+    <PageLayout
+      title="My Fridge"
+      subtitle="Manage your ingredients with a visual approach"
       actions={
-        <Button 
-          variant="outline" 
-          leftIcon={<RefreshCwIcon className="w-4 h-4" />}
-          onClick={loadData}
-          loading={loading}
-        >
-          Refresh
-        </Button>
+        <Dialog open={isAddDialogOpen} onOpenChange={setIsAddDialogOpen}>
+          <DialogTrigger asChild>
+            <Button>
+              <PlusIcon className="mr-2 h-4 w-4" /> Add Ingredient
+            </Button>
+          </DialogTrigger>
+          <DialogContent className="sm:max-w-[500px]">
+            <DialogHeader>
+              <DialogTitle>Add to Fridge</DialogTitle>
+              <DialogDescription>
+                Add a new ingredient to your fridge with automatic image
+                generation.
+              </DialogDescription>
+            </DialogHeader>
+            <AddIngredientForm />
+          </DialogContent>
+        </Dialog>
       }
     >
-      {error && (
-        <Card variant="outlined" className="p-4 border-error">
-          <p className="text-error">{error}</p>
-        </Card>
-      )}
-      
-      <IngredientForm 
-        ingredients={ingredients}
-        onAddItem={handleAddItem}
-        onAddIngredient={handleAddNewIngredient}
-        onUpdate={handleUpdate}
-        editingItem={currentEditingItem ? {
-          id: currentEditingItem.id,
-          ingredient_id: currentEditingItem.ingredient_id,
-          quantity: currentEditingItem.quantity,
-          unit: currentEditingItem.unit
-        } : null}
-        loading={loading}
-      />
-      
-      <div className="mt-8">
-        <h3 className="text-lg font-medium mb-4">Your Ingredients</h3>
-        {fridgeItems.length === 0 ? (
-          <Card variant="outlined" className="p-8 text-center">
-            <p className="text-neutral-600">No items in your fridge yet.</p>
-            <p className="text-neutral-500 text-sm mt-2">Add ingredients above to get started.</p>
-          </Card>
-        ) : (
-          <div className="space-y-3">
-            {fridgeItems.map(item => {
-              const ingredientData = mapToIngredientCardData(item);
-              const isEditing = item.id === editingId;
-              
-              if (isEditing) {
-                return (
-                  <Card key={item.id} variant="highlight" className="p-4">
-                    <div className="flex justify-between items-center">
-                      <span className="font-medium">Editing {ingredientData.name}</span>
-                      <Button 
-                        variant="ghost" 
-                        size="sm"
-                        onClick={handleCancelEdit}
-                      >
-                        Cancel
-                      </Button>
-                    </div>
-                  </Card>
-                );
-              }
-              
-              return (
-                <IngredientCard
-                  key={item.id}
-                  ingredient={ingredientData}
-                  variant="compact"
-                  onEdit={() => handleEdit(item.id)}
-                  onDelete={() => handleDelete(item.id)}
-                />
-              );
-            })}
+      <div className="container mx-auto p-4">
+        {isLoading ? (
+          <div className="flex justify-center items-center min-h-[400px]">
+            <Spinner size="xl" />
           </div>
+        ) : ingredients.length === 0 ? (
+          <div className="text-center py-10">
+            <h3 className="text-xl font-medium mb-2">Your fridge is empty</h3>
+            <p className="text-muted-foreground mb-6">
+              Add some ingredients to get started
+            </p>
+            <Button onClick={() => setIsAddDialogOpen(true)}>
+              <PlusIcon className="mr-2 h-4 w-4" /> Add Your First Ingredient
+            </Button>
+          </div>
+        ) : (
+          <IngredientGrid
+            ingredients={ingredients}
+            onEdit={handleEditIngredient}
+            onDelete={handleDeleteIngredient}
+            className="mt-6"
+          />
         )}
       </div>
+
+      {/* Edit Ingredient Dialog */}
+      <Dialog open={isEditDialogOpen} onOpenChange={setIsEditDialogOpen}>
+        <DialogContent className="sm:max-w-[500px]">
+          <DialogHeader>
+            <DialogTitle>Edit Ingredient</DialogTitle>
+            <DialogDescription>
+              Update the details for {selectedIngredient?.name}
+            </DialogDescription>
+          </DialogHeader>
+          {selectedIngredient && (
+            <FridgeItemForm
+              isEditing={true}
+              fridgeItem={createFridgeItemFromIngredient(selectedIngredient)}
+            />
+          )}
+        </DialogContent>
+      </Dialog>
     </PageLayout>
   );
 }

@@ -5,8 +5,8 @@ import { MealRecommendationList } from "@/components/features/meals/MealRecommen
 import { supabaseAdmin } from "@/lib/supabase";
 import { generateMealRecommendations } from "@/lib/ai-service";
 import { Skeleton } from "@/components/ui/skeleton";
-import { RefreshCwIcon } from "lucide-react";
 import { PageLayout } from "@/components/common/PageLayout";
+import { Spinner } from "@/components/ui/spinner";
 
 // Enhanced loading component
 function RecommendationsLoading() {
@@ -19,7 +19,7 @@ function RecommendationsLoading() {
         </p>
 
         <div className="flex justify-center items-center mb-8">
-          <RefreshCwIcon className="animate-spin h-8 w-8 text-primary mr-2" />
+          <Spinner size="lg" className="text-primary mr-2" />
           <span className="text-primary font-medium">
             Loading recommendations
           </span>
