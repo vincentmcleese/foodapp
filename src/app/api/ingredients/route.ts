@@ -36,6 +36,7 @@ export async function POST(request: Request) {
     const ingredient = {
       name: body.name,
       image_status: body.image_status || "pending",
+      ingredient_type: body.ingredient_type || "regular",
     };
 
     // Insert into database

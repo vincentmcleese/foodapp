@@ -41,12 +41,21 @@ export default function FridgePage() {
         // Fetch ingredients
         const ingredientsResponse = await fetch("/api/ingredients");
         const ingredientsData = await ingredientsResponse.json();
-        setIngredients(ingredientsData);
 
         // Fetch fridge items
         const fridgeResponse = await fetch("/api/fridge");
         const fridgeData = await fridgeResponse.json();
         setFridgeItems(fridgeData);
+
+        // Filter ingredients to only show those that are in the fridge
+        const fridgeIngredientIds = fridgeData.map(
+          (item: FridgeItem) => item.ingredient_id
+        );
+        const fridgeIngredients = ingredientsData.filter(
+          (ingredient: Ingredient) =>
+            fridgeIngredientIds.includes(ingredient.id)
+        );
+        setIngredients(fridgeIngredients);
       } catch (error) {
         console.error("Error fetching data:", error);
         toast({
@@ -167,11 +176,13 @@ export default function FridgePage() {
     return {
       id: `temp-${ingredient.id}`, // Temporary ID to be replaced on save
       ingredient_id: ingredient.id,
-      quantity: 1,
-      unit: "g",
+      quantity: ingredient.ingredient_type === "regular" ? 1 : undefined,
+      unit: ingredient.ingredient_type === "regular" ? "g" : undefined,
+      status: ingredient.ingredient_type === "pantry" ? "IN_STOCK" : undefined,
       ingredient: {
         id: ingredient.id,
         name: ingredient.name,
+        ingredient_type: ingredient.ingredient_type,
       },
     };
   };
@@ -218,6 +229,7 @@ export default function FridgePage() {
         ) : (
           <IngredientGrid
             ingredients={ingredients}
+            fridgeItems={fridgeItems}
             onEdit={handleEditIngredient}
             onDelete={handleDeleteIngredient}
             className="mt-6"

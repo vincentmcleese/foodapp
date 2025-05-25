@@ -8,6 +8,7 @@ export interface Ingredient {
   nutrition?: any;
   image_url?: string;
   image_status?: "pending" | "generating" | "completed" | "failed";
+  ingredient_type: "pantry" | "regular";
   createdAt?: string;
   updatedAt?: string;
 }
@@ -15,8 +16,9 @@ export interface Ingredient {
 export interface FridgeItem {
   id: string;
   ingredient_id: string;
-  quantity: number;
-  unit: string;
+  quantity?: number; // Now optional for pantry items
+  unit?: string; // Now optional for pantry items
+  status?: "IN_STOCK" | "NOT_IN_STOCK"; // For pantry items
   expires_at?: string;
   created_at?: string;
   updated_at?: string;
@@ -163,7 +165,14 @@ export const fridgeService = {
 
   // Add a new fridge item
   async addItem(
-    item: Omit<FridgeItem, "id" | "created_at" | "updated_at" | "ingredient">
+    item: Omit<
+      FridgeItem,
+      "id" | "created_at" | "updated_at" | "ingredient"
+    > & {
+      // Ensure at least one of these patterns is provided:
+      // 1. For regular ingredients: quantity and unit
+      // 2. For pantry items: status
+    }
   ): Promise<FridgeItem> {
     const response = await fetch("/api/fridge", {
       method: "POST",
@@ -267,6 +276,7 @@ export const ingredientService = {
   async createIngredient(data: {
     name: string;
     image_status: string;
+    ingredient_type: "pantry" | "regular";
   }): Promise<Ingredient> {
     const response = await fetch("/api/ingredients", {
       method: "POST",
