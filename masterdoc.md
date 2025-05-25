@@ -544,7 +544,7 @@ These standards ensure our CRUD implementations remain consistent, maintainable,
 
 ## 4. Project Structure & Route Map
 
-```plaintext
+````plaintext
 foodapp/
 ├── public/                       # Static assets & images
 ├── prisma/                       # ORM schema + migrations
@@ -662,6 +662,10 @@ A photorealistic, high-resolution food photograph of a {INSERT INGREDIENT HERE},
 	•	Set caching headers via CDN or Vercel configuration.
 	•	Use low-quality image placeholders (LQIP) if needed.
 
+
+Sprint 10 Stunning visuals for meals
+When we discover or view meal cards we would like to see an image. We would like to see the images populate one by one on the discover page and we need to see the loading state until the image is loaded - 	•	Consider rate-limiting or batching image generations to avoid hitting API limits or slow UX.
+. The process will work just as ingredients (see sprint 9)with the same prompt but the variable is the title of the meal. Save the image in supabase and keep it connected to a saved meal so we always see it in the meal card on /meal
 
 
 ⸻
@@ -883,4 +887,777 @@ Once all above are checked, squash-merge with the PR title as the final commit m
 
 ---
 
+## 5. TDD Workflow & Conventions
+
+- **Test-First**: Write failing tests before implementing features.
+- **Green→Refactor**: Get tests passing, then clean up code.
+- **Scopes**: Unit, integration, component, and E2E tests for every feature.
+- **Tools**: Jest + Testing Library + MSW for unit/integration; Playwright for E2E.
+- **Conventions**:
+  - Naming: describe("Feature X", ...); it("does Y", ...).
+  - Mocks: Jest module mocks; MSW for HTTP in unit/integration tests.
+  - Component Tests: React Testing Library—render, screen, userEvent.
+  - E2E: Playwright against a live app + real Supabase backend; mobile & desktop viewports.
+  - CI: Run full suite on every PR; block merges on failures or <90% coverage.
+
+### 5.1 TDD Examples & Patterns
+
+Below are concrete examples of our Test-Driven Development approach for different types of components and features. Following these patterns will ensure consistent test coverage and help catch regressions early.
+
+#### 5.1.1 API Route Testing Pattern
+
+Here's a complete TDD example for implementing a CRUD API endpoint:
+
+**1. Write the test first (failing):**
+
+```typescript
+// src/app/api/ingredients/[id]/route.test.ts
+import { NextRequest } from "next/server";
+import { DELETE, GET, PUT } from "./route";
+import { supabaseAdmin } from "@/lib/supabase";
+
+// Mock Supabase
+jest.mock("@/lib/supabase", () => ({
+  supabaseAdmin: {
+    from: jest.fn().mockReturnThis(),
+    select: jest.fn().mockReturnThis(),
+    eq: jest.fn().mockReturnThis(),
+    single: jest.fn(),
+    update: jest.fn().mockReturnThis(),
+    delete: jest.fn().mockReturnThis(),
+  },
+}));
+
+describe("Ingredient API Routes", () => {
+  const mockParams = Promise.resolve({ id: "test-id" });
+
+  beforeEach(() => {
+    jest.clearAllMocks();
+  });
+
+  describe("GET /api/ingredients/[id]", () => {
+    it("returns 200 with ingredient data when successful", async () => {
+      // Mock successful response
+      const mockData = { id: "test-id", name: "Test Ingredient" };
+      (supabaseAdmin.from().select().eq().single as jest.Mock).mockResolvedValue({
+        data: mockData,
+        error: null,
+      });
+
+      // Call the handler
+      const result = await GET(new NextRequest(new URL("http://localhost/api/ingredients/test-id")), {
+        params: mockParams,
+      });
+
+      // Check expectations
+      expect(result.status).toBe(200);
+      expect(await result.json()).toEqual(mockData);
+      expect(supabaseAdmin.from).toHaveBeenCalledWith("ingredient");
+      expect(supabaseAdmin.select).toHaveBeenCalled();
+      expect(supabaseAdmin.eq).toHaveBeenCalledWith("id", "test-id");
+    });
+
+    it("returns 404 when ingredient not found", async () => {
+      // Mock not found response
+      (supabaseAdmin.from().select().eq().single as jest.Mock).mockResolvedValue({
+        data: null,
+        error: { code: "PGRST116", message: "Not found" },
+      });
+
+      // Call the handler
+      const result = await GET(new NextRequest(new URL("http://localhost/api/ingredients/test-id")), {
+        params: mockParams,
+      });
+
+      // Check expectations
+      expect(result.status).toBe(404);
+      const body = await result.json();
+      expect(body.error).toBeTruthy();
+    });
+  });
+
+  // Similarly implement tests for PUT and DELETE...
+});
+````
+
+**2. Implement the code to make tests pass:**
+
+```typescript
+// src/app/api/ingredients/[id]/route.ts
+import { NextResponse } from "next/server";
+import { supabaseAdmin } from "@/lib/supabase";
+
+export async function GET(
+  request: Request,
+  { params }: { params: Promise<{ id: string }> }
+) {
+  try {
+    const { id } = await params;
+
+    const { data, error } = await supabaseAdmin
+      .from("ingredient")
+      .select("*")
+      .eq("id", id)
+      .single();
+
+    if (error) {
+      console.error(`Error fetching ingredient ${id}:`, error);
+      return NextResponse.json(
+        { error: "Failed to fetch ingredient" },
+        { status: error.code === "PGRST116" ? 404 : 500 }
+      );
+    }
+
+    return NextResponse.json(data);
+  } catch (error) {
+    console.error("Error in GET /api/ingredients/[id]:", error);
+    return NextResponse.json(
+      { error: "Internal server error" },
+      { status: 500 }
+    );
+  }
+}
 ```
+
+**3. Refactor if needed:**
+
+```typescript
+// Extract shared error handling
+const handleApiError = (
+  error: any,
+  defaultMessage: string,
+  statusCode = 500
+) => {
+  console.error(`Error: ${defaultMessage}:`, error);
+  return NextResponse.json(
+    { error: defaultMessage },
+    { status: error.code === "PGRST116" ? 404 : statusCode }
+  );
+};
+```
+
+#### 5.1.2 React Component Testing Pattern
+
+**1. Write the test first (failing):**
+
+```typescript
+// src/components/features/fridge/IngredientCard.test.tsx
+import { render, screen, fireEvent } from "@testing-library/react";
+import { IngredientCard } from "./IngredientCard";
+
+describe("IngredientCard", () => {
+  const mockIngredient = {
+    id: "123",
+    name: "Eggs",
+    image_url: "/images/eggs.jpg",
+  };
+
+  const mockHandlers = {
+    onEdit: jest.fn(),
+    onDelete: jest.fn(),
+  };
+
+  it("renders ingredient name and image", () => {
+    render(<IngredientCard ingredient={mockIngredient} {...mockHandlers} />);
+
+    expect(screen.getByText("Eggs")).toBeInTheDocument();
+    expect(screen.getByAltText("Image of Eggs")).toHaveAttribute(
+      "src",
+      expect.stringContaining("eggs.jpg")
+    );
+  });
+
+  it("calls onEdit when edit button is clicked", () => {
+    render(<IngredientCard ingredient={mockIngredient} {...mockHandlers} />);
+
+    fireEvent.click(screen.getByLabelText("Edit ingredient"));
+    expect(mockHandlers.onEdit).toHaveBeenCalledWith(mockIngredient);
+  });
+
+  it("calls onDelete when delete button is clicked and confirmed", () => {
+    render(<IngredientCard ingredient={mockIngredient} {...mockHandlers} />);
+
+    fireEvent.click(screen.getByLabelText("Delete ingredient"));
+    fireEvent.click(screen.getByText("Confirm"));
+
+    expect(mockHandlers.onDelete).toHaveBeenCalledWith("123");
+  });
+});
+```
+
+**2. Implement the component to make tests pass:**
+
+```tsx
+// src/components/features/fridge/IngredientCard.tsx
+import { useState } from "react";
+import { Card } from "@/components/ui/card";
+import { Button } from "@/components/ui/button";
+import { Ingredient } from "@/lib/api-services";
+import { IngredientImage } from "./IngredientImage";
+
+interface IngredientCardProps {
+  ingredient: Ingredient;
+  onEdit: (ingredient: Ingredient) => void;
+  onDelete: (id: string) => void;
+}
+
+export function IngredientCard({
+  ingredient,
+  onEdit,
+  onDelete,
+}: IngredientCardProps) {
+  const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
+
+  return (
+    <Card className="p-4">
+      <IngredientImage
+        imageUrl={ingredient.image_url}
+        name={ingredient.name}
+        className="mb-2"
+      />
+      <h3 className="font-medium text-lg">{ingredient.name}</h3>
+
+      <div className="mt-4 flex justify-end gap-2">
+        <Button
+          variant="outline"
+          size="sm"
+          aria-label="Edit ingredient"
+          onClick={() => onEdit(ingredient)}
+        >
+          Edit
+        </Button>
+
+        {!showDeleteConfirm ? (
+          <Button
+            variant="outline"
+            size="sm"
+            aria-label="Delete ingredient"
+            onClick={() => setShowDeleteConfirm(true)}
+          >
+            Delete
+          </Button>
+        ) : (
+          <div className="flex gap-2">
+            <Button
+              variant="destructive"
+              size="sm"
+              onClick={() => onDelete(ingredient.id)}
+            >
+              Confirm
+            </Button>
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => setShowDeleteConfirm(false)}
+            >
+              Cancel
+            </Button>
+          </div>
+        )}
+      </div>
+    </Card>
+  );
+}
+```
+
+#### 5.1.3 Form Component Testing Pattern
+
+**1. Write the test first (failing):**
+
+```typescript
+// src/components/features/fridge/FridgeItemForm.test.tsx
+import { render, screen, fireEvent, waitFor } from "@testing-library/react";
+import { FridgeItemForm } from "./FridgeItemForm";
+import { fridgeService } from "@/lib/api-services";
+
+// Mock services
+jest.mock("@/lib/api-services", () => ({
+  fridgeService: {
+    addItem: jest.fn(),
+    updateItem: jest.fn(),
+  },
+  ingredientService: {
+    getAllIngredients: jest.fn().mockResolvedValue([
+      { id: "1", name: "Eggs" },
+      { id: "2", name: "Milk" },
+    ]),
+  },
+}));
+
+describe("FridgeItemForm", () => {
+  const mockFridgeItem = {
+    id: "123",
+    ingredient_id: "1",
+    quantity: 12,
+    unit: "pcs",
+    ingredient: { id: "1", name: "Eggs" },
+  };
+
+  beforeEach(() => {
+    jest.clearAllMocks();
+  });
+
+  it("loads with form fields populated when editing", async () => {
+    render(<FridgeItemForm isEditing fridgeItem={mockFridgeItem} />);
+
+    await waitFor(() => {
+      expect(screen.getByLabelText(/ingredient/i)).toHaveValue("Eggs");
+      expect(screen.getByLabelText(/quantity/i)).toHaveValue("12");
+      expect(screen.getByLabelText(/unit/i)).toHaveValue("pcs");
+    });
+  });
+
+  it("calls addItem when submitting new item", async () => {
+    (fridgeService.addItem as jest.Mock).mockResolvedValue({ id: "new-id" });
+
+    render(<FridgeItemForm />);
+
+    // Fill out form
+    fireEvent.change(screen.getByLabelText(/ingredient/i), {
+      target: { value: "Eggs" },
+    });
+    fireEvent.change(screen.getByLabelText(/quantity/i), {
+      target: { value: "6" },
+    });
+    fireEvent.change(screen.getByLabelText(/unit/i), {
+      target: { value: "pcs" },
+    });
+
+    // Submit form
+    fireEvent.click(screen.getByText(/save/i));
+
+    await waitFor(() => {
+      expect(fridgeService.addItem).toHaveBeenCalledWith({
+        ingredient_id: "1",
+        quantity: 6,
+        unit: "pcs",
+      });
+    });
+  });
+
+  it("calls updateItem when editing existing item", async () => {
+    (fridgeService.updateItem as jest.Mock).mockResolvedValue({ id: "123" });
+
+    render(<FridgeItemForm isEditing fridgeItem={mockFridgeItem} />);
+
+    // Change quantity
+    fireEvent.change(screen.getByLabelText(/quantity/i), {
+      target: { value: "24" },
+    });
+
+    // Submit form
+    fireEvent.click(screen.getByText(/save/i));
+
+    await waitFor(() => {
+      expect(fridgeService.updateItem).toHaveBeenCalledWith("123", {
+        quantity: 24,
+        unit: "pcs",
+      });
+    });
+  });
+
+  it("shows validation errors for required fields", async () => {
+    render(<FridgeItemForm />);
+
+    // Submit without filling form
+    fireEvent.click(screen.getByText(/save/i));
+
+    await waitFor(() => {
+      expect(screen.getByText(/ingredient is required/i)).toBeInTheDocument();
+      expect(screen.getByText(/quantity is required/i)).toBeInTheDocument();
+    });
+
+    // Check no API call was made
+    expect(fridgeService.addItem).not.toHaveBeenCalled();
+  });
+});
+```
+
+### 5.2 Reusable Test Templates
+
+The following templates can be used as starting points for testing various common patterns in our application:
+
+#### 5.2.1 API Route Test Template
+
+```typescript
+import { NextRequest } from "next/server";
+import { GET, POST, PUT, DELETE } from "./route";
+import { supabaseAdmin } from "@/lib/supabase";
+
+// Mock dependencies
+jest.mock("@/lib/supabase", () => ({
+  supabaseAdmin: {
+    from: jest.fn().mockReturnThis(),
+    select: jest.fn().mockReturnThis(),
+    insert: jest.fn().mockReturnThis(),
+    update: jest.fn().mockReturnThis(),
+    delete: jest.fn().mockReturnThis(),
+    eq: jest.fn().mockReturnThis(),
+    single: jest.fn(),
+  },
+}));
+
+describe("Resource API Routes", () => {
+  const mockParams = Promise.resolve({ id: "test-id" });
+  const mockRequest = new NextRequest(
+    new URL("http://localhost/api/resource/test-id")
+  );
+
+  beforeEach(() => {
+    jest.clearAllMocks();
+  });
+
+  describe("GET handler", () => {
+    it("returns data when successful", async () => {
+      // Setup mocks
+      const mockData = { id: "test-id", name: "Test Resource" };
+      (
+        supabaseAdmin.from().select().eq().single as jest.Mock
+      ).mockResolvedValue({
+        data: mockData,
+        error: null,
+      });
+
+      // Call the handler
+      const response = await GET(mockRequest, { params: mockParams });
+
+      // Assertions
+      expect(response.status).toBe(200);
+      expect(await response.json()).toEqual(mockData);
+    });
+
+    it("returns 404 when not found", async () => {
+      // Setup mocks
+      (
+        supabaseAdmin.from().select().eq().single as jest.Mock
+      ).mockResolvedValue({
+        data: null,
+        error: { code: "PGRST116", message: "Not found" },
+      });
+
+      // Call the handler
+      const response = await GET(mockRequest, { params: mockParams });
+
+      // Assertions
+      expect(response.status).toBe(404);
+    });
+
+    it("returns 500 on error", async () => {
+      // Setup mocks
+      (
+        supabaseAdmin.from().select().eq().single as jest.Mock
+      ).mockResolvedValue({
+        data: null,
+        error: { message: "Database error" },
+      });
+
+      // Call the handler
+      const response = await GET(mockRequest, { params: mockParams });
+
+      // Assertions
+      expect(response.status).toBe(500);
+    });
+  });
+
+  // Similar patterns for POST, PUT, DELETE
+});
+```
+
+#### 5.2.2 React Component Test Template
+
+```typescript
+import { render, screen, fireEvent, waitFor } from "@testing-library/react";
+import userEvent from "@testing-library/user-event";
+import { ComponentToTest } from "./ComponentToTest";
+
+// Mock any dependencies
+jest.mock("@/lib/api-services", () => ({
+  resourceService: {
+    getAll: jest.fn(),
+    create: jest.fn(),
+    update: jest.fn(),
+    delete: jest.fn(),
+  },
+}));
+
+describe("ComponentToTest", () => {
+  // Define test data
+  const mockProps = {
+    // Add required props
+  };
+
+  beforeEach(() => {
+    jest.clearAllMocks();
+  });
+
+  it("renders correctly with default props", () => {
+    render(<ComponentToTest {...mockProps} />);
+
+    // Check basic rendering
+    expect(screen.getByText(/expected text/i)).toBeInTheDocument();
+  });
+
+  it("handles user interactions", async () => {
+    const user = userEvent.setup();
+    render(<ComponentToTest {...mockProps} />);
+
+    // Perform user interactions
+    await user.click(screen.getByRole("button", { name: /action/i }));
+
+    // Check expected outcomes
+    expect(screen.getByText(/new state/i)).toBeInTheDocument();
+  });
+
+  it("handles asynchronous operations", async () => {
+    // Setup mock to return expected data
+    const mockService = require("@/lib/api-services").resourceService;
+    mockService.getAll.mockResolvedValue([{ id: "1", name: "Item 1" }]);
+
+    render(<ComponentToTest {...mockProps} />);
+
+    // Check loading state if applicable
+    expect(screen.getByText(/loading/i)).toBeInTheDocument();
+
+    // Wait for async operation to complete
+    await waitFor(() => {
+      expect(screen.getByText("Item 1")).toBeInTheDocument();
+    });
+
+    // Verify service was called correctly
+    expect(mockService.getAll).toHaveBeenCalled();
+  });
+
+  it("handles error states", async () => {
+    // Setup mock to simulate error
+    const mockService = require("@/lib/api-services").resourceService;
+    mockService.getAll.mockRejectedValue(new Error("Network error"));
+
+    render(<ComponentToTest {...mockProps} />);
+
+    // Wait for error state
+    await waitFor(() => {
+      expect(screen.getByText(/error/i)).toBeInTheDocument();
+    });
+  });
+});
+```
+
+#### 5.2.3 Form Component Test Template
+
+```typescript
+import { render, screen, fireEvent, waitFor } from "@testing-library/react";
+import userEvent from "@testing-library/user-event";
+import { FormComponent } from "./FormComponent";
+import { toast } from "@/components/ui/use-toast";
+
+// Mock dependencies
+jest.mock("@/lib/api-services", () => ({
+  resourceService: {
+    create: jest.fn(),
+    update: jest.fn(),
+  },
+}));
+
+jest.mock("@/components/ui/use-toast", () => ({
+  toast: {
+    success: jest.fn(),
+    error: jest.fn(),
+  },
+}));
+
+describe("FormComponent", () => {
+  const mockData = {
+    id: "123",
+    name: "Test Item",
+    description: "Test description",
+  };
+
+  beforeEach(() => {
+    jest.clearAllMocks();
+  });
+
+  it("renders form fields with default values for new item", () => {
+    render(<FormComponent />);
+
+    expect(screen.getByLabelText(/name/i)).toHaveValue("");
+    expect(screen.getByLabelText(/description/i)).toHaveValue("");
+    expect(
+      screen.getByRole("button", { name: /save|submit|create/i })
+    ).toBeInTheDocument();
+  });
+
+  it("loads with existing data when editing", () => {
+    render(<FormComponent isEditing data={mockData} />);
+
+    expect(screen.getByLabelText(/name/i)).toHaveValue("Test Item");
+    expect(screen.getByLabelText(/description/i)).toHaveValue(
+      "Test description"
+    );
+  });
+
+  it("validates required fields", async () => {
+    render(<FormComponent />);
+
+    // Submit without filling required fields
+    fireEvent.click(
+      screen.getByRole("button", { name: /save|submit|create/i })
+    );
+
+    // Check validation errors
+    await waitFor(() => {
+      expect(screen.getByText(/name is required/i)).toBeInTheDocument();
+    });
+  });
+
+  it("submits form with valid data for new item", async () => {
+    const mockService = require("@/lib/api-services").resourceService;
+    mockService.create.mockResolvedValue({ id: "new-id", ...mockData });
+
+    render(<FormComponent />);
+
+    // Fill form
+    await userEvent.type(screen.getByLabelText(/name/i), "Test Item");
+    await userEvent.type(
+      screen.getByLabelText(/description/i),
+      "Test description"
+    );
+
+    // Submit form
+    fireEvent.click(
+      screen.getByRole("button", { name: /save|submit|create/i })
+    );
+
+    // Verify API call
+    await waitFor(() => {
+      expect(mockService.create).toHaveBeenCalledWith({
+        name: "Test Item",
+        description: "Test description",
+      });
+      expect(toast.success).toHaveBeenCalled();
+    });
+  });
+
+  it("updates existing item when in edit mode", async () => {
+    const mockService = require("@/lib/api-services").resourceService;
+    mockService.update.mockResolvedValue({ ...mockData, name: "Updated Item" });
+
+    render(<FormComponent isEditing data={mockData} />);
+
+    // Change name field
+    fireEvent.change(screen.getByLabelText(/name/i), {
+      target: { value: "Updated Item" },
+    });
+
+    // Submit form
+    fireEvent.click(screen.getByRole("button", { name: /save|update/i }));
+
+    // Verify API call
+    await waitFor(() => {
+      expect(mockService.update).toHaveBeenCalledWith("123", {
+        name: "Updated Item",
+        description: "Test description",
+      });
+      expect(toast.success).toHaveBeenCalled();
+    });
+  });
+
+  it("handles API errors", async () => {
+    const mockService = require("@/lib/api-services").resourceService;
+    mockService.create.mockRejectedValue(new Error("API error"));
+
+    render(<FormComponent />);
+
+    // Fill and submit form
+    await userEvent.type(screen.getByLabelText(/name/i), "Test Item");
+    fireEvent.click(
+      screen.getByRole("button", { name: /save|submit|create/i })
+    );
+
+    // Verify error handling
+    await waitFor(() => {
+      expect(toast.error).toHaveBeenCalled();
+    });
+  });
+});
+```
+
+These templates ensure consistent test coverage and help catch regressions early.
+
+---
+
+## 10. Test Coverage Improvements (Sprint 9)
+
+As part of Sprint 9, we significantly improved the test coverage and quality for our application, focusing particularly on CRUD operations. Here's what we accomplished:
+
+### 10.1 TDD Documentation
+
+We added detailed Test-Driven Development (TDD) examples and patterns to the documentation, including:
+
+- Step-by-step TDD workflow examples for API routes, React components, and form components
+- Reusable test templates for common patterns
+- Best practices for testing different types of components
+
+### 10.2 Test Templates
+
+Created reusable test templates for:
+
+- CRUD API endpoints (`src/app/api/test-templates/crud-api.test.ts`)
+- React components with user interactions
+- Form components with validation and submission
+- API services with error handling
+
+### 10.3 Component Tests
+
+Improved and fixed tests for UI components:
+
+- Added comprehensive tests for the Spinner component
+- Fixed and enhanced tests for IngredientGrid component
+- Added tests for the FridgePage with proper mocking
+- Fixed MealRecommendations tests with ResizeObserver mocking
+
+### 10.4 API Tests
+
+Added comprehensive tests for API endpoints:
+
+- `GET`, `PUT`, and `DELETE` methods for `/api/ingredients/[id]`
+- `GET` and `POST` methods for `/api/ingredients`
+- Error handling for all API endpoints
+
+### 10.5 Service Tests
+
+Created tests for API service methods:
+
+- `ingredientService.getAllIngredients()`
+- `ingredientService.addIngredient()`
+- `ingredientService.searchIngredients()`
+- `ingredientService.deleteIngredient()`
+
+### 10.6 Test Coverage Results
+
+Through these improvements, we increased our overall test coverage from 57.2% to 67.28%:
+
+- Statements: 67.28%
+- Branches: 50.61%
+- Functions: 57.79%
+- Lines: 67.83%
+
+Some components now have 100% coverage, including:
+
+- `src/app/api/ingredients/route.ts`
+- `src/components/common/Card.tsx`
+- `src/components/common/FormField.tsx`
+- `src/components/ui/spinner.tsx`
+- `src/lib/fridge.ts`
+- `src/lib/meal.ts`
+
+### 10.7 Future Test Improvements
+
+Areas that still need improved test coverage:
+
+1. Complete tests for the remaining API endpoints (`/api/meals`, `/api/shopping`)
+2. Improve tests for complex client components
+3. Add more integration tests for full user flows
+4. Fix the failing tests in `src/components/MealCard.test.tsx`
+5. Add tests for the image generation functionality
+
+---
