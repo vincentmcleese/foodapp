@@ -10,7 +10,7 @@ import {
 } from "@/components/features/fridge/FridgeItemForm";
 import { Button } from "@/components/ui/button";
 import { PlusIcon } from "lucide-react";
-import { Ingredient } from "@/lib/api-services";
+import { Ingredient, ingredientService } from "@/lib/api-services";
 import { useToast } from "@/components/ui/use-toast";
 import {
   Dialog,
@@ -65,15 +65,19 @@ export default function FridgePage() {
   // Handle delete ingredient
   const handleDeleteIngredient = async (id: string) => {
     try {
-      // This would be replaced with actual API call to delete ingredient
-      // await ingredientService.deleteIngredient(id);
+      // Actually call the API to delete the ingredient
+      await ingredientService.deleteIngredient(id);
 
+      // Update local state after successful API call
       setIngredients(ingredients.filter((ing) => ing.id !== id));
 
       toast({
         title: "Success",
         description: "Ingredient removed from fridge",
       });
+
+      // Refresh the page to show updated data
+      router.refresh();
     } catch (error) {
       console.error("Error deleting ingredient:", error);
       toast({

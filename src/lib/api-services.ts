@@ -4,10 +4,12 @@
 export interface Ingredient {
   id: string;
   name: string;
-  usda_fdc_id?: number;
-  nutrition?: Record<string, unknown>;
-  created_at?: string;
-  updated_at?: string;
+  usdaFdcId?: number;
+  nutrition?: any;
+  image_url?: string;
+  image_status?: "pending" | "generating" | "completed" | "failed";
+  createdAt?: string;
+  updatedAt?: string;
 }
 
 export interface FridgeItem {
@@ -240,6 +242,87 @@ export const ingredientService = {
       throw new Error(error.error || "Failed to add ingredient");
     }
     return response.json();
+  },
+
+  /**
+   * Search for ingredients using fuzzy matching
+   */
+  async searchIngredients(query: string): Promise<Ingredient[]> {
+    const response = await fetch(
+      `/api/ingredients/search?q=${encodeURIComponent(query)}`
+    );
+    if (!response.ok) {
+      const error = await response.json();
+      throw new Error(error.error || "Failed to search ingredients");
+    }
+    return response.json();
+  },
+
+  /**
+   * Create a new ingredient with image generation placeholder
+   */
+  async createIngredient(data: {
+    name: string;
+    image_status: string;
+  }): Promise<Ingredient> {
+    const response = await fetch("/api/ingredients", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify(data),
+    });
+
+    if (!response.ok) {
+      const error = await response.json();
+      throw new Error(error.error || "Failed to create ingredient");
+    }
+    return response.json();
+  },
+
+  /**
+   * Delete an ingredient by ID
+   */
+  async deleteIngredient(id: string): Promise<{ success: boolean }> {
+    const response = await fetch(`/api/ingredients/${id}`, {
+      method: "DELETE",
+    });
+
+    if (!response.ok) {
+      const error = await response.json();
+      throw new Error(error.error || `Failed to delete ingredient ${id}`);
+    }
+    return response.json();
+  },
+
+  /**
+   * Generate an image for an ingredient
+   */
+  async generateImage(
+    ingredientId: string,
+    name: string
+  ): Promise<{ success: boolean; imageUrl?: string }> {
+    try {
+      const response = await fetch("/api/ingredients/generate-image", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ ingredientId, name }),
+      });
+
+      const data = await response.json();
+
+      if (!response.ok) {
+        throw new Error(data.error || "Image generation failed");
+      }
+
+      return {
+        success: true,
+        imageUrl: data.imageUrl,
+      };
+    } catch (error) {
+      console.error("Error generating image:", error);
+      return { success: false };
+    }
   },
 };
 
@@ -618,19 +701,6 @@ export const healthService = {
     if (!response.ok) {
       const error = await response.json();
       throw new Error(error.error || `Failed to delete health principle ${id}`);
-    }
-    return response.json();
-  },
-};
-
-// Shopping List API Service
-export const shoppingService = {
-  // Get shopping list based on meal plan and fridge inventory
-  async getShoppingList(): Promise<ShoppingList> {
-    const response = await fetch("/api/shopping");
-    if (!response.ok) {
-      const error = await response.json();
-      throw new Error(error.error || "Failed to fetch shopping list");
     }
     return response.json();
   },
