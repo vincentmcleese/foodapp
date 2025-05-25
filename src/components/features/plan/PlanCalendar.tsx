@@ -5,6 +5,7 @@ import { PlanEntry } from "@/lib/api-services";
 import { Card } from "@/components/common/Card";
 import { Button } from "@/components/ui/button";
 import { PlusIcon, EditIcon, TrashIcon, CalendarIcon } from "lucide-react";
+import { format, startOfWeek, addDays } from "date-fns";
 
 interface PlanCalendarProps {
   entries: PlanEntry[];
@@ -31,20 +32,46 @@ export function PlanCalendar({
 
   const mealTypes = ["breakfast", "lunch", "dinner", "snack"];
 
+  // Get the current week's start date (Monday)
+  const getCurrentWeekDates = () => {
+    // Start with Sunday as day 0, then adjust to get Monday
+    const now = new Date();
+    const startOfCurrentWeek = startOfWeek(now, { weekStartsOn: 1 }); // 1 = Monday
+
+    // Create mapping of day names to actual dates for this week
+    return days.reduce((acc, day, index) => {
+      const date = addDays(startOfCurrentWeek, index);
+      acc[day] = date;
+      return acc;
+    }, {} as Record<string, Date>);
+  };
+
+  const weekDates = getCurrentWeekDates();
+
   // Helper function to get day of week from date
   const getDayOfWeek = (dateStr: string): string => {
     if (!dateStr) return "";
     const date = new Date(dateStr);
-    const days = [
-      "sunday",
-      "monday",
-      "tuesday",
-      "wednesday",
-      "thursday",
-      "friday",
-      "saturday",
-    ];
-    return days[date.getDay()];
+
+    // JavaScript getDay() returns 0 for Sunday, 1 for Monday, etc.
+    // but our grid starts with Monday, so we need to map them correctly
+    const dayIndex = date.getDay(); // 0 = Sunday, 1 = Monday, etc.
+
+    // Convert JavaScript day index to our days array index
+    // Sunday (0) -> index 6
+    // Monday (1) -> index 0
+    // Tuesday (2) -> index 1
+    // etc.
+    const mappedIndex = dayIndex === 0 ? 6 : dayIndex - 1;
+
+    return days[mappedIndex];
+  };
+
+  // Modified handleAddEntry to pass the actual date for the selected day
+  const handleDayClick = (day: string, mealType: string) => {
+    const dateForDay = weekDates[day];
+    const formattedDate = format(dateForDay, "yyyy-MM-dd");
+    onAddEntry(formattedDate, mealType);
   };
 
   // Group entries by day and meal type
@@ -68,6 +95,9 @@ export function PlanCalendar({
             className="text-center font-semibold text-neutral-700 capitalize"
           >
             {day}
+            <div className="text-xs text-neutral-500">
+              {format(weekDates[day], "MMM d")}
+            </div>
           </div>
         ))}
       </div>
@@ -85,6 +115,9 @@ export function PlanCalendar({
                   {/* Day label on mobile */}
                   <div className="md:hidden font-semibold text-neutral-700 capitalize mb-2">
                     {day}
+                    <span className="text-xs text-neutral-500 ml-2">
+                      {format(weekDates[day], "MMM d")}
+                    </span>
                   </div>
 
                   {entriesByDayAndType[day][mealType].length > 0 ? (
@@ -102,7 +135,7 @@ export function PlanCalendar({
                         size="sm"
                         variant="ghost"
                         className="w-full justify-center"
-                        onClick={() => onAddEntry(day, mealType)}
+                        onClick={() => handleDayClick(day, mealType)}
                       >
                         <PlusIcon className="w-4 h-4 mr-1" />
                         Add meal
@@ -113,7 +146,7 @@ export function PlanCalendar({
                     <Card
                       variant="outlined"
                       className="min-h-[100px] flex flex-col items-center justify-center p-4 hover:border-primary/50 transition-colors"
-                      onClick={() => onAddEntry(day, mealType)}
+                      onClick={() => handleDayClick(day, mealType)}
                     >
                       <PlusIcon className="w-5 h-5 text-neutral-400 mb-2" />
                       <span className="text-sm text-neutral-500">Add meal</span>

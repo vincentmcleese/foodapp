@@ -89,8 +89,9 @@ export function PlanEntryForm({
     return isValid(parsedDate) ? parsedDate : new Date();
   };
 
-  const initialDate = searchParams?.get("day")
-    ? getValidDate(searchParams.get("day"))
+  // Now get the date from "date" parameter instead of "day"
+  const initialDate = searchParams?.get("date")
+    ? getValidDate(searchParams.get("date"))
     : entry?.date
     ? getValidDate(entry.date)
     : new Date();

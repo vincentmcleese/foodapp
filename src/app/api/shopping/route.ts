@@ -44,9 +44,9 @@ interface RequiredIngredient {
 
 export async function GET() {
   try {
-    // 1. First get all plan entries
+    // 1. First get all plan entries - use meal_plan instead of plan_entry
     const { data: planEntries, error: planError } = await supabaseAdmin
-      .from("plan_entry")
+      .from("meal_plan")
       .select("*");
 
     if (planError) {

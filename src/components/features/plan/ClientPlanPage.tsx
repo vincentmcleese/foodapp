@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { PlanEntry, planService } from "@/lib/api-services";
 import { Card } from "@/components/common/Card";
@@ -17,8 +17,27 @@ export function ClientPlanPage({ initialEntries }: ClientPlanPageProps) {
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
-  const handleAddEntry = (dayOfWeek: string, mealType: string) => {
-    router.push(`/plan/new?day=${dayOfWeek}&type=${mealType}`);
+  // Add a function to refresh plan entries
+  const refreshEntries = async () => {
+    try {
+      setIsLoading(true);
+      const updatedEntries = await planService.getAllEntries();
+      setEntries(updatedEntries);
+    } catch (err) {
+      console.error("Error refreshing plan entries:", err);
+      setError("Failed to refresh entries. Please reload the page.");
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  // Add effect to refresh entries when component mounts
+  useEffect(() => {
+    refreshEntries();
+  }, []);
+
+  const handleAddEntry = (date: string, mealType: string) => {
+    router.push(`/plan/new?date=${date}&type=${mealType}`);
   };
 
   const handleEditEntry = (entry: PlanEntry) => {
@@ -52,6 +71,17 @@ export function ClientPlanPage({ initialEntries }: ClientPlanPageProps) {
           <p className="text-error">{error}</p>
         </Card>
       )}
+
+      {/* Refresh button */}
+      <div className="flex justify-end">
+        <button
+          onClick={refreshEntries}
+          className="text-sm text-primary hover:underline flex items-center"
+          disabled={isLoading}
+        >
+          {isLoading ? "Refreshing..." : "Refresh Plans"}
+        </button>
+      </div>
 
       {/* The calendar view */}
       <PlanCalendar

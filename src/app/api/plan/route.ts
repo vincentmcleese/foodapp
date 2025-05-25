@@ -4,7 +4,7 @@ import { supabaseAdmin } from "@/lib/supabase";
 export async function GET() {
   try {
     const { data, error } = await supabaseAdmin
-      .from("plan_entry")
+      .from("meal_plan")
       .select(
         `
         *,
@@ -46,7 +46,7 @@ export async function POST(request: Request) {
 
     // Insert the new plan entry
     const { data, error } = await supabaseAdmin
-      .from("plan_entry")
+      .from("meal_plan")
       .insert({
         meal_id,
         date,
