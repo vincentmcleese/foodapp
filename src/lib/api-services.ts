@@ -104,6 +104,36 @@ export interface MealRatingSummary {
   userRating?: boolean; // Current user's rating (if available)
 }
 
+// Add interfaces for meal recommendations
+export interface MealRecommendation {
+  id?: string;
+  name: string;
+  description: string;
+  instructions: string;
+  prepTime: number;
+  cookTime: number;
+  servings: number;
+  cuisine: string;
+  ingredients: {
+    name: string;
+    quantity: number;
+    unit: string;
+  }[];
+  nutrition: {
+    calories: number;
+    protein: number;
+    carbs: number;
+    fat: number;
+  };
+}
+
+export interface RecommendationRequest {
+  page?: number;
+  pageSize?: number;
+  cuisine?: string;
+  maxPrepTime?: number;
+}
+
 // Fridge Item API Service
 export const fridgeService = {
   // Get all fridge items
@@ -369,6 +399,67 @@ export const mealService = {
       throw new Error(error.error || `Failed to get ratings for meal ${id}`);
     }
     return response.json();
+  },
+
+  async getRecommendations(
+    options: RecommendationRequest = {}
+  ): Promise<MealRecommendation[]> {
+    try {
+      const { page = 1, pageSize = 3, cuisine, maxPrepTime } = options;
+      const url = new URL(
+        `${window.location.origin}/api/meals/recommendations`
+      );
+
+      // Add query parameters
+      url.searchParams.append("page", page.toString());
+      url.searchParams.append("pageSize", pageSize.toString());
+      if (cuisine) {
+        url.searchParams.append("cuisine", cuisine);
+      }
+      if (maxPrepTime) {
+        url.searchParams.append("maxPrepTime", maxPrepTime.toString());
+      }
+
+      const response = await fetch(url.toString());
+      const data = await response.json();
+
+      if (!response.ok) {
+        throw new Error(data.error || "Failed to get meal recommendations");
+      }
+
+      return data.recommendations || [];
+    } catch (error) {
+      console.error("Error getting meal recommendations:", error);
+      throw error;
+    }
+  },
+
+  async saveMeal(
+    meal: MealRecommendation
+  ): Promise<{ success: boolean; mealId: string }> {
+    try {
+      const response = await fetch(`/api/meals/save`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify(meal),
+      });
+
+      const data = await response.json();
+
+      if (!response.ok) {
+        throw new Error(data.error || "Failed to save meal");
+      }
+
+      return {
+        success: true,
+        mealId: data.mealId,
+      };
+    } catch (error) {
+      console.error("Error saving meal:", error);
+      throw error;
+    }
   },
 };
 

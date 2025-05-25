@@ -14,7 +14,7 @@ model Ingredient {
     id        String   @id @default(uuid())
     name      String   @unique
     usdaFdcId Int?     @map("usda_fdc_id") // Link to USDA FoodData Central, if available
-    nutrition Json?    // { calories, protein, fat, carbs, ... } per 100g
+    nutrition Json? // { calories, protein, fat, carbs, ... } per 100g
     createdAt DateTime @default(now()) @map("created_at")
     updatedAt DateTime @updatedAt @map("updated_at")
 
@@ -28,8 +28,8 @@ model FridgeItem {
     id           String     @id @default(uuid())
     ingredient   Ingredient @relation(fields: [ingredientId], references: [id])
     ingredientId String     @map("ingredient_id")
-    quantity     Float      // e.g., 2.5
-    unit         String     // e.g., "g", "kg", "ml", "pcs"
+    quantity     Float // e.g., 2.5
+    unit         String // e.g., "g", "kg", "ml", "pcs"
     expiresAt    DateTime?  @map("expires_at")
     createdAt    DateTime   @default(now()) @map("created_at")
     updatedAt    DateTime   @updatedAt @map("updated_at")
@@ -46,7 +46,10 @@ model Meal {
     cookTime     Int?     @map("cook_time")
     servings     Int?
     imageUrl     String?  @map("image_url")
-    nutrition    Json?    // { calories, protein, fat, carbs, ... } for the meal
+    nutrition    Json? // { calories, protein, fat, carbs, ... } for the meal
+    source       String?  @default("user") // "user", "ai", etc.
+    aiGenerated  Boolean? @default(false) @map("ai_generated")
+    cuisine      String? // e.g., "Italian", "Mexican", "Asian"
     createdAt    DateTime @default(now()) @map("created_at")
     updatedAt    DateTime @updatedAt @map("updated_at")
 
@@ -63,8 +66,8 @@ model MealIngredient {
     mealId       String     @map("meal_id")
     ingredient   Ingredient @relation(fields: [ingredientId], references: [id])
     ingredientId String     @map("ingredient_id")
-    quantity     Float      // e.g., 100
-    unit         String     // e.g., "g", "ml", "pcs"
+    quantity     Float // e.g., 100
+    unit         String // e.g., "g", "ml", "pcs"
     createdAt    DateTime   @default(now()) @map("created_at")
     updatedAt    DateTime   @updatedAt @map("updated_at")
 
@@ -97,7 +100,7 @@ model HealthPrinciple {
 model UserPreferences {
     id                   String   @id @default(uuid())
     dietaryGoals         Json?    @map("dietary_goals") // e.g., { calories: 2000, protein: 150, ... }
-    allergies            Json?    // e.g., ["peanuts", "gluten"]
+    allergies            Json? // e.g., ["peanuts", "gluten"]
     notificationInterval Int?     @map("notification_interval") // in minutes
     darkMode             Boolean? @map("dark_mode") // UI preference
     createdAt            DateTime @default(now()) @map("created_at")
@@ -110,7 +113,7 @@ model Feedback {
     id        String   @id @default(uuid())
     meal      Meal     @relation(fields: [mealId], references: [id])
     mealId    String   @map("meal_id")
-    rating    Int      // 1-5
+    rating    Int // 1-5
     comment   String?
     createdAt DateTime @default(now()) @map("created_at")
 

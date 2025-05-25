@@ -1,108 +1,107 @@
-import Link from 'next/link';
-import { supabaseAdmin } from '@/lib/supabase';
-import { calculateNutrition } from '@/lib/meal';
-import MealCard from '@/components/MealCard';
-import { PageLayout } from '@/components/common/PageLayout';
-import { Button } from '@/components/ui/button';
-import { PlusIcon } from 'lucide-react';
-import { Card } from '@/components/common/Card';
+import { Meal, mealService } from "@/lib/api-services";
+import { supabaseAdmin } from "@/lib/supabase";
+import { Button } from "@/components/ui/button";
+import { PageLayout } from "@/components/common/PageLayout";
+import Link from "next/link";
+import { PlusIcon } from "lucide-react";
+import { Card } from "@/components/common/Card";
+import { DiscoverButton } from "@/components/features/meals/DiscoverButton";
 
-export const dynamic = 'force-dynamic';
+export const dynamic = "force-dynamic";
+
+interface MealIngredient {
+  ingredient: {
+    id: string;
+    name: string;
+  };
+}
 
 export default async function MealsPage() {
-  // Fetch all meals from Supabase
-  const { data: meals, error } = await supabaseAdmin
-    .from('meal')
-    .select(`
+  // Fetch all meals from the API
+  const { data: meals, error } = await supabaseAdmin.from("meal").select(`
       *,
       meal_ingredient!meal_id (
         *,
-        ingredient:ingredient_id (id, name, usda_fdc_id, nutrition)
+        ingredient (
+          id,
+          name
+        )
       )
     `);
 
   if (error) {
-    console.error('Error fetching meals:', error);
-    return (
-      <PageLayout title="Meals">
-        <Card variant="outlined" className="p-6 text-center">
-          <p className="text-error">Error loading meals. Please try again later.</p>
-        </Card>
-      </PageLayout>
-    );
+    console.error("Error fetching meals:", error);
+    return <div>Error loading meals</div>;
   }
 
-  // Fetch all meal ratings
-  const { data: allRatings, error: ratingsError } = await supabaseAdmin
-    .from("meal_rating")
-    .select("*");
+  // Process the meals data for display
+  const processedMeals = meals.map((meal) => {
+    // Calculate total calories if nutrition data exists
+    const totalCalories = meal.nutrition?.calories || 0;
 
-  if (ratingsError) {
-    console.error("Error fetching meal ratings:", ratingsError);
-    // Continue without ratings rather than failing the request
-  }
-
-  // Group ratings by meal_id
-  const ratingsByMeal = (allRatings || []).reduce((acc, rating) => {
-    if (!acc[rating.meal_id]) {
-      acc[rating.meal_id] = [];
-    }
-    acc[rating.meal_id].push(rating);
-    return acc;
-  }, {} as Record<string, any[]>);
-
-  // Process meals data
-  const processedMeals = meals.map(meal => {
-    const ingredients = meal.meal_ingredient || [];
-    const nutrition = calculateNutrition(ingredients);
-    
-    // Calculate rating summary if available
-    const mealRatings = ratingsByMeal[meal.id] || [];
-    const likes = mealRatings.filter((r: { rating: boolean }) => r.rating === true).length;
-    const dislikes = mealRatings.filter((r: { rating: boolean }) => r.rating === false).length;
-    
-    const ratings = {
-      likes,
-      dislikes,
-      total: mealRatings.length
-    };
+    // Get ingredient names
+    const ingredients =
+      meal.meal_ingredient?.map((mi: MealIngredient) => mi.ingredient.name) ||
+      [];
 
     return {
       ...meal,
+      totalCalories,
       ingredients,
-      nutrition,
-      ratings
     };
   });
 
-  // Create the "Add New Meal" button for the page actions
-  const AddMealButton = (
-    <Link href="/meals/new">
-      <Button leftIcon={<PlusIcon className="w-4 h-4" />}>
-        Add New Meal
-      </Button>
-    </Link>
+  // Create the page actions with both Discover and Add New Meal buttons
+  const PageActions = (
+    <div className="flex gap-2">
+      <DiscoverButton />
+      <Link href="/meals/new">
+        <Button leftIcon={<PlusIcon className="w-4 h-4" />}>
+          Add New Meal
+        </Button>
+      </Link>
+    </div>
   );
 
   return (
-    <PageLayout 
-      title="Meals" 
-      subtitle="Browse and manage your meals" 
-      actions={AddMealButton}
+    <PageLayout
+      title="Meals"
+      subtitle="Browse and manage your meals"
+      actions={PageActions}
     >
       {processedMeals.length === 0 ? (
         <Card variant="outlined" className="p-8 text-center">
-          <p className="text-neutral-600 mb-4">No meals found. Create your first meal!</p>
+          <h3 className="text-lg font-medium mb-2">No meals found</h3>
+          <p className="text-gray-500 mb-4">You haven't added any meals yet.</p>
           <Link href="/meals/new">
-            <Button variant="soft" leftIcon={<PlusIcon className="w-4 h-4" />}>
-              Create Meal
-            </Button>
+            <Button>Add Your First Meal</Button>
           </Link>
         </Card>
       ) : (
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-          {processedMeals.map(meal => (
-            <MealCard key={meal.id} meal={meal} />
+          {processedMeals.map((meal) => (
+            <Link key={meal.id} href={`/meals/${meal.id}`}>
+              <Card className="h-full cursor-pointer hover:shadow-md transition-shadow">
+                <div className="p-4">
+                  <h3 className="text-lg font-semibold mb-1">{meal.name}</h3>
+                  <p className="text-sm text-gray-500 mb-2">
+                    {meal.description || "No description available"}
+                  </p>
+                  {meal.totalCalories > 0 && (
+                    <p className="text-sm font-medium">
+                      {meal.totalCalories} calories
+                    </p>
+                  )}
+                  <div className="mt-2">
+                    <p className="text-xs text-gray-600">
+                      {meal.ingredients.slice(0, 3).join(", ")}
+                      {meal.ingredients.length > 3 &&
+                        `, +${meal.ingredients.length - 3} more`}
+                    </p>
+                  </div>
+                </div>
+              </Card>
+            </Link>
           ))}
         </div>
       )}

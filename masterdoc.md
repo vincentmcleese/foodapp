@@ -51,7 +51,7 @@ This single source of truth merges every requirement—from user stories to tech
 - **Quick Feedback**: Toasts (`<Toast>` from shadcn/ui) and confetti for positive reinforcement.
 - **Design Tokens**: Centralized color, spacing, and shadow tokens for easy theming.
 
-## 2a. FoodApp Design System 
+## 2a. FoodApp Design System
 
 This design system outlines the FoodApp design system components, tokens, and usage guidelines - follow this whenever implementing UI or creating new components!!!
 
@@ -105,24 +105,24 @@ import { Card } from '@/components/common/Card'
 ### FormField
 
 ```tsx
-import { FormField } from '@/components/common/FormField'
-import { Input } from '@/components/ui/input'
+import { FormField } from "@/components/common/FormField";
+import { Input } from "@/components/ui/input";
 
-<FormField 
+<FormField
   id="name"
   label="Name"
   hint="Enter your full name"
   error={errors.name}
 >
   <Input id="name" name="name" value={name} onChange={handleChange} />
-</FormField>
+</FormField>;
 ```
 
 ### PageLayout
 
 ```tsx
-import { PageLayout } from '@/components/common/PageLayout'
-import { Button } from '@/components/ui/button'
+import { PageLayout } from "@/components/common/PageLayout";
+import { Button } from "@/components/ui/button";
 
 <PageLayout
   title="Meals"
@@ -130,7 +130,7 @@ import { Button } from '@/components/ui/button'
   actions={<Button>Add Meal</Button>}
 >
   <div>Page content goes here</div>
-</PageLayout>
+</PageLayout>;
 ```
 
 ## Enhanced Button
@@ -168,12 +168,15 @@ import { PlusIcon } from 'lucide-react'
 Each feature area has specialized components that follow the design system guidelines:
 
 ### Meals
+
 - MealCard: For displaying meal information
 
 ### Fridge
+
 - IngredientCard: For displaying ingredient information
 
 ### Future Components
+
 As the application grows, additional feature components will be added following the same design patterns.
 
 ## Tailwind CSS Usage
@@ -364,7 +367,7 @@ export async function GET(
 ) {
   // Always await params before accessing properties
   const { id } = await params;
-  
+
   // Continue with database operations
 }
 ```
@@ -394,13 +397,15 @@ export async function GET(
 // Standard query pattern with relations
 const { data, error } = await supabaseAdmin
   .from("table_name")
-  .select(`
+  .select(
+    `
     *,
     related_table!foreign_key (
       *,
       nested_related_table:foreign_key (id, name)
     )
-  `)
+  `
+  )
   .eq("id", id)
   .single();
 
@@ -420,11 +425,21 @@ Define service objects in `api-services.ts` with consistent method naming:
 
 ```typescript
 export const resourceService = {
-  async getAll(): Promise<Resource[]> { /* ... */ },
-  async get(id: string): Promise<Resource> { /* ... */ },
-  async create(data: CreateResourceDto): Promise<Resource> { /* ... */ },
-  async update(id: string, data: UpdateResourceDto): Promise<Resource> { /* ... */ },
-  async delete(id: string): Promise<{ success: boolean }> { /* ... */ },
+  async getAll(): Promise<Resource[]> {
+    /* ... */
+  },
+  async get(id: string): Promise<Resource> {
+    /* ... */
+  },
+  async create(data: CreateResourceDto): Promise<Resource> {
+    /* ... */
+  },
+  async update(id: string, data: UpdateResourceDto): Promise<Resource> {
+    /* ... */
+  },
+  async delete(id: string): Promise<{ success: boolean }> {
+    /* ... */
+  },
 };
 ```
 
@@ -566,7 +581,7 @@ Sprint	Feature / Requirement	Test Focus	Demo Criteria	Status
 5	Health tab: toggle on/off science principles and add new principles	Unit & integration tests for toggle functionality and principle CRUD	Health tab lists principles with working toggles; users can add and enable/disable principles	Completed
 6	Required ingredients list from week's meal plan in shop page like a shoppoing list with fridge integration	Unit & integration tests for aggregation logic and status flags	Missing vs. in-stock ingredients list correctly generated based on current fridge inventory	Completed
 7	Meal rating feature (like/dislike)	Unit & integration tests for rating persistence and UI updates	Users can rate meals; ratings are stored and displayed on the Meals page	Completed
-8	AI assistant on Plan page: recommend new meals based on fridge, preferences, and science principles	Integration tests for AI endpoint and interactive UI suggestions	AI suggestions appear on Plan page and update dynamically when fridge contents or preferences change	Planned
+8	AI assistant on meals page: we would like a feature that recommends new meals based on fridge, preferences, and science principles. The feature should be a button that says "Discover" and it opens a new page to allow discover of new meals - show richcontent beautiful mealcards that contain recommendations from the LLM (smart prompt based on the criteria mentioned above). Include lots of data including ingredients, prep time, etc so we can filter. There should be a way to load more. If you "save" or "add" a recommendation it should be added to your meals in the /meals page.	Integration tests for AI endpoint and interactive UI suggestions
 
 
 ⸻
@@ -638,6 +653,19 @@ Sprint	Feature / Requirement	Test Focus	Demo Criteria	Status
   - Added unit tests for rating components and API endpoints
   - Implemented E2E tests for the rating workflow
 
+- **Sprint 8** (2024-07-15):
+  - Implemented AI-powered meal recommendations using OpenAI's GPT-4o model with structured JSON responses
+  - Designed a client-side rendering strategy for the Discover page to provide immediate loading feedback
+  - Created a dedicated API endpoint for recommendations to separate concerns and simplify client code
+  - Added database support for AI-generated meals with a new ai_generated flag
+  - Implemented intelligent ingredient matching for AI recommendations to prevent duplicate ingredients
+  - Used case-insensitive matching for ingredients to handle variations in naming
+  - Adopted a skeleton UI pattern for loading states to improve perceived performance
+  - Implemented paginated loading with "Load More" pattern to optimize initial page load time
+  - Created fallback mechanism with mock data when OpenAI API is unavailable
+  - Fixed JSON response formatting issues by adding explicit "json" word in prompt when using response_format parameter
+  - Standardized database field mapping between JavaScript camelCase and PostgreSQL snake_case
+
 ---
 
 ## 8. Decision Log
@@ -695,6 +723,19 @@ Sprint	Feature / Requirement	Test Focus	Demo Criteria	Status
   - Created ClientMealPage component for improved meal details view
   - Added unit tests for rating components and API endpoints
   - Implemented E2E tests for the rating workflow
+
+- Sprint 8 (2024-07-15):
+  - Implemented AI-powered meal recommendations using OpenAI's GPT-4o model with structured JSON responses
+  - Designed a client-side rendering strategy for the Discover page to provide immediate loading feedback
+  - Created a dedicated API endpoint for recommendations to separate concerns and simplify client code
+  - Added database support for AI-generated meals with a new ai_generated flag
+  - Implemented intelligent ingredient matching for AI recommendations to prevent duplicate ingredients
+  - Used case-insensitive matching for ingredients to handle variations in naming
+  - Adopted a skeleton UI pattern for loading states to improve perceived performance
+  - Implemented paginated loading with "Load More" pattern to optimize initial page load time
+  - Created fallback mechanism with mock data when OpenAI API is unavailable
+  - Fixed JSON response formatting issues by adding explicit "json" word in prompt when using response_format parameter
+  - Standardized database field mapping between JavaScript camelCase and PostgreSQL snake_case
 
 ---
 
