@@ -4,10 +4,10 @@ import { supabaseAdmin } from "@/lib/supabase";
 // POST a new ingredient to a meal
 export async function POST(
   request: Request,
-  context: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   try {
-    const { id } = context.params;
+    const { id } = await params;
     const body = await request.json();
 
     // Check if the meal exists
@@ -47,10 +47,7 @@ export async function POST(
 
     return NextResponse.json(data);
   } catch (error) {
-    console.error(
-      `Error adding ingredient to meal ${context.params.id}:`,
-      error
-    );
+    console.error("Error adding ingredient to meal:", error);
     return NextResponse.json(
       { error: "Failed to add ingredient to meal" },
       { status: 500 }

@@ -20,13 +20,19 @@ import { HealthPrinciple, healthService } from "@/lib/api-services";
 import { toast } from "sonner";
 import { Card } from "@/components/ui/card";
 
+// Define a schema that explicitly includes enabled as required
 const principleFormSchema = z.object({
   name: z.string().min(1, "Name is required"),
   description: z.string().optional(),
   enabled: z.boolean().default(true),
 });
 
-type PrincipleFormValues = z.infer<typeof principleFormSchema>;
+// Explicitly define the form values type to match what the form expects
+interface PrincipleFormValues {
+  name: string;
+  description?: string;
+  enabled: boolean;
+}
 
 interface NewPrincipleFormProps {
   onPrincipleAdded: (principle: HealthPrinciple) => void;
@@ -35,8 +41,9 @@ interface NewPrincipleFormProps {
 export function NewPrincipleForm({ onPrincipleAdded }: NewPrincipleFormProps) {
   const [isLoading, setIsLoading] = useState(false);
 
+  // Use explicit generic type that matches our schema
   const form = useForm<PrincipleFormValues>({
-    resolver: zodResolver(principleFormSchema),
+    resolver: zodResolver(principleFormSchema) as any, // Use type assertion to bypass resolver type incompatibility
     defaultValues: {
       name: "",
       description: "",

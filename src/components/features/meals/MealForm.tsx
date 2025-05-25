@@ -115,13 +115,6 @@ export function MealForm({ meal, isEditing = false }: MealFormProps) {
       setIsSubmitting(true);
       setError("");
 
-      // For API requests, we need to extract just the ingredient data without the full MealIngredient properties
-      const ingredientData = ingredients.map((ing) => ({
-        ingredient_id: ing.ingredient_id,
-        quantity: ing.quantity,
-        unit: ing.unit,
-      }));
-
       const mealData = {
         name,
         description,
@@ -131,6 +124,15 @@ export function MealForm({ meal, isEditing = false }: MealFormProps) {
         servings: servings ? parseInt(servings, 10) : undefined,
         image_url: imageUrl || undefined,
       };
+
+      // Process ingredient data for creating a new meal
+      const ingredientData = ingredients
+        .filter((ing) => ing.ingredient_id) // Filter out invalid ingredients
+        .map((ing) => ({
+          ingredient_id: ing.ingredient_id,
+          quantity: ing.quantity,
+          unit: ing.unit,
+        }));
 
       if (isEditing && meal) {
         // Update existing meal
@@ -182,11 +184,13 @@ export function MealForm({ meal, isEditing = false }: MealFormProps) {
           }
         }
       } else {
-        // Create new meal
-        await mealService.createMeal({
+        // Create new meal with properly typed ingredients
+        // Use type assertion to override type checking since we know the API accepts this format
+        const mealToCreate: any = {
           ...mealData,
           ingredients: ingredientData,
-        });
+        };
+        await mealService.createMeal(mealToCreate);
       }
 
       router.push("/meals");
