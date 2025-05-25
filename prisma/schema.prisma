@@ -46,6 +46,7 @@ model Meal {
     cookTime     Int?     @map("cook_time")
     servings     Int?
     imageUrl     String?  @map("image_url")
+    imageStatus  String?  @default("pending") @map("image_status") // "pending", "generating", "completed", "failed"
     nutrition    Json? // { calories, protein, fat, carbs, ... } for the meal
     source       String?  @default("user") // "user", "ai", etc.
     aiGenerated  Boolean? @default(false) @map("ai_generated")

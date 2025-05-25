@@ -6,6 +6,7 @@ import { cn } from "@/lib/utils";
 import { PencilIcon, TrashIcon } from "lucide-react";
 import { MealRating } from "./MealRating";
 import { MealRatingSummary } from "@/lib/api-services";
+import { MealImage } from "./MealImage";
 
 export interface Meal {
   id: string;
@@ -15,7 +16,9 @@ export interface Meal {
   protein?: number;
   carbs?: number;
   fat?: number;
-  imageUrl?: string;
+  image_url?: string;
+  image_status?: "pending" | "generating" | "completed" | "failed";
+  imageUrl?: string; // For backward compatibility
   ratings?: MealRatingSummary;
 }
 
@@ -69,15 +72,16 @@ export function MealCard({
       onClick={onClick ? handleClick : undefined}
     >
       <div className="flex flex-col gap-4">
-        {meal.imageUrl && (
-          <div className="h-40 w-full -mx-6 -mt-6 mb-2">
-            <img
-              src={meal.imageUrl}
-              alt={meal.name}
-              className="h-full w-full object-cover"
-            />
-          </div>
-        )}
+        <div className="h-40 w-full -mx-6 -mt-6 mb-2">
+          <MealImage
+            imageUrl={meal.image_url || meal.imageUrl}
+            status={meal.image_status || "completed"}
+            name={meal.name}
+            width={400}
+            height={160}
+            className="h-full w-full"
+          />
+        </div>
 
         <div className="flex justify-between items-start">
           <div>

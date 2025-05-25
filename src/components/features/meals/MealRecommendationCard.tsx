@@ -20,6 +20,7 @@ import {
 } from "lucide-react";
 import { MealRecommendation } from "@/lib/api-services";
 import { useToast } from "@/hooks/use-toast";
+import { MealImage } from "./MealImage";
 
 interface MealRecommendationCardProps {
   meal: MealRecommendation;
@@ -56,6 +57,16 @@ export function MealRecommendationCard({
 
   return (
     <Card className="w-full h-full flex flex-col overflow-hidden transition-all duration-200 hover:shadow-lg border-2 border-transparent hover:border-indigo-100">
+      <div className="h-44 w-full">
+        <MealImage
+          imageUrl={meal.image_url}
+          status={meal.image_status || "pending"}
+          name={meal.name}
+          width={400}
+          height={176}
+          className="h-full w-full"
+        />
+      </div>
       <CardHeader className="pb-2">
         <div className="flex justify-between items-start">
           <div>

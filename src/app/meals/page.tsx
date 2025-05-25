@@ -5,6 +5,7 @@ import { PageLayout } from "@/components/common/PageLayout";
 import Link from "next/link";
 import { PlusIcon } from "lucide-react";
 import { Card } from "@/components/common/Card";
+import { MealCardLink } from "@/components/features/meals/MealCardLink";
 import { DiscoverButton } from "@/components/features/meals/DiscoverButton";
 
 export const dynamic = "force-dynamic";
@@ -80,28 +81,24 @@ export default async function MealsPage() {
       ) : (
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
           {processedMeals.map((meal) => (
-            <Link key={meal.id} href={`/meals/${meal.id}`}>
-              <Card className="h-full cursor-pointer hover:shadow-md transition-shadow">
-                <div className="p-4">
-                  <h3 className="text-lg font-semibold mb-1">{meal.name}</h3>
-                  <p className="text-sm text-gray-500 mb-2">
-                    {meal.description || "No description available"}
-                  </p>
-                  {meal.totalCalories > 0 && (
-                    <p className="text-sm font-medium">
-                      {meal.totalCalories} calories
-                    </p>
-                  )}
-                  <div className="mt-2">
-                    <p className="text-xs text-gray-600">
-                      {meal.ingredients.slice(0, 3).join(", ")}
-                      {meal.ingredients.length > 3 &&
-                        `, +${meal.ingredients.length - 3} more`}
-                    </p>
-                  </div>
-                </div>
-              </Card>
-            </Link>
+            <MealCardLink
+              key={meal.id}
+              href={`/meals/${meal.id}`}
+              meal={{
+                id: meal.id,
+                name: meal.name,
+                description: meal.description,
+                calories: meal.nutrition?.calories,
+                protein: meal.nutrition?.protein,
+                carbs: meal.nutrition?.carbs,
+                fat: meal.nutrition?.fat,
+                image_url: meal.image_url,
+                image_status: meal.image_status,
+              }}
+              variant="default"
+              showActions={false}
+              className="h-full"
+            />
           ))}
         </div>
       )}

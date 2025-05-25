@@ -48,6 +48,8 @@ export async function POST(request: Request) {
       ai_generated: true,
     };
 
+    // Note: We're temporarily removing image_status until the DB schema is updated
+
     // Insert the meal and get the ID
     const { data: insertedMeal, error: mealError } = await supabaseAdmin
       .from("meal")
@@ -62,6 +64,35 @@ export async function POST(request: Request) {
         { status: 500 }
       );
     }
+
+    // Schedule image generation in the background
+    setTimeout(async () => {
+      try {
+        const fullUrl = new URL(
+          "/api/meals/generate-image",
+          request.url
+        ).toString();
+
+        await fetch(fullUrl, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            mealId: insertedMeal.id,
+            name: insertedMeal.name,
+          }),
+        });
+
+        console.log(
+          `Image generation requested for meal: ${insertedMeal.name}`
+        );
+      } catch (error) {
+        console.error(
+          `Error requesting image generation for meal ${insertedMeal.name}:`,
+          error
+        );
+        // Non-blocking - we continue with the response
+      }
+    }, 100); // Small delay to ensure response is sent first
 
     // Process ingredients if they exist
     if (ingredients.length > 0) {

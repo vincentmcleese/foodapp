@@ -1,12 +1,14 @@
 import OpenAI from "openai";
 
 /**
- * Generates an image for an ingredient using DALL-E 3
- * @param ingredientName The name of the ingredient to generate an image for
+ * Generic function to generate an image using DALL-E 3
+ * @param subject The food item/meal to generate an image for
+ * @param type The type of image to generate ('ingredient' or 'meal')
  * @returns URL of the generated image or null if generation failed
  */
-export async function generateIngredientImage(
-  ingredientName: string
+export async function generateFoodImage(
+  subject: string,
+  type: "ingredient" | "meal" = "ingredient"
 ): Promise<string | null> {
   try {
     // Initialize OpenAI client
@@ -14,10 +16,12 @@ export async function generateIngredientImage(
       apiKey: process.env.OPENAI_API_KEY,
     });
 
-    // Use the exact prompt specified in the masterdoc
-    const prompt = `A photorealistic, high-resolution food photograph of a ${ingredientName}, elegantly plated on a round, off-white, lightly speckled ceramic plate. The plate sits centered on a warm, medium-tone wooden table with visible wood grain. The image is captured from a top-down (90-degree overhead) angle with soft, natural lighting from the top left. Use shallow depth of field, neutral shadows, and a clean white background outside the plate. The composition should follow consistent proportions: plate fills 80% of the frame, centered precisely. The overall style matches high-end editorial food photography.`;
+    // Use the exact prompt specified in the masterdoc, adjusted slightly for meals vs ingredients
+    const prompt = `A photorealistic, high-resolution food photograph of ${
+      type === "meal" ? "" : "a "
+    }${subject}, elegantly plated on a round, off-white, lightly speckled ceramic plate. The plate sits centered on a warm, medium-tone wooden table with visible wood grain. The image is captured from a top-down (90-degree overhead) angle with soft, natural lighting from the top left. Use shallow depth of field, neutral shadows, and a clean white background outside the plate. The composition should follow consistent proportions: plate fills 80% of the frame, centered precisely. The overall style matches high-end editorial food photography.`;
 
-    console.log(`Generating image for ingredient: ${ingredientName}`);
+    console.log(`Generating image for ${type}: ${subject}`);
 
     // Implement retry logic with exponential backoff
     const MAX_RETRIES = 3;
@@ -43,7 +47,7 @@ export async function generateIngredientImage(
           retries++;
           if (retries >= MAX_RETRIES) {
             console.error(
-              `Rate limit hit, max retries (${MAX_RETRIES}) exceeded for ${ingredientName}`
+              `Rate limit hit, max retries (${MAX_RETRIES}) exceeded for ${subject}`
             );
             throw error;
           }
@@ -53,7 +57,7 @@ export async function generateIngredientImage(
           console.log(
             `Rate limit hit, retrying in ${
               backoffTime / 1000
-            } seconds for ${ingredientName}`
+            } seconds for ${subject}`
           );
 
           // Wait before retrying
@@ -77,11 +81,33 @@ export async function generateIngredientImage(
       return null;
     }
 
-    console.log(`Image generated successfully for ${ingredientName}`);
+    console.log(`Image generated successfully for ${type}: ${subject}`);
 
     return imageUrl;
   } catch (error) {
-    console.error("Error generating image with DALL-E:", error);
+    console.error(`Error generating image with DALL-E for ${subject}:`, error);
     return null;
   }
+}
+
+/**
+ * Generates an image for an ingredient using DALL-E 3
+ * @param ingredientName The name of the ingredient to generate an image for
+ * @returns URL of the generated image or null if generation failed
+ */
+export async function generateIngredientImage(
+  ingredientName: string
+): Promise<string | null> {
+  return generateFoodImage(ingredientName, "ingredient");
+}
+
+/**
+ * Generates an image for a meal using DALL-E 3
+ * @param mealName The name of the meal to generate an image for
+ * @returns URL of the generated image or null if generation failed
+ */
+export async function generateMealImage(
+  mealName: string
+): Promise<string | null> {
+  return generateFoodImage(mealName, "meal");
 }

@@ -43,6 +43,7 @@ export interface Meal {
   cook_time?: number;
   servings?: number;
   image_url?: string;
+  image_status?: "pending" | "generating" | "completed" | "failed";
   created_at?: string;
   updated_at?: string;
   ingredients?: MealIngredient[];
@@ -116,6 +117,8 @@ export interface MealRecommendation {
   cookTime: number;
   servings: number;
   cuisine: string;
+  image_url?: string;
+  image_status?: "pending" | "generating" | "completed" | "failed";
   ingredients: {
     name: string;
     quantity: number;
@@ -488,6 +491,36 @@ export const mealService = {
       throw new Error(error.error || `Failed to get ratings for meal ${id}`);
     }
     return response.json();
+  },
+
+  /**
+   * Generate an image for a meal
+   */
+  async generateImage(
+    mealId: string,
+    name: string
+  ): Promise<{ success: boolean; imageUrl?: string }> {
+    try {
+      const response = await fetch("/api/meals/generate-image", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ mealId, name }),
+      });
+
+      const data = await response.json();
+
+      if (!response.ok) {
+        throw new Error(data.error || "Meal image generation failed");
+      }
+
+      return {
+        success: true,
+        imageUrl: data.imageUrl,
+      };
+    } catch (error) {
+      console.error("Error generating meal image:", error);
+      return { success: false };
+    }
   },
 
   async getRecommendations(
