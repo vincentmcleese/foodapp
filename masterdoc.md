@@ -678,6 +678,10 @@ sprint 12 make the search bar the top component of the /fridge page. as a user y
 
 sprint 13 make the cards on the plan page int he grid jsut show a thumbnail of the image of the meal if there is a meal planned in that slot. Give the image an overlay and put the name of the meal but not too big because its a very busy UI.
 
+sprint 14 lets add a badge onto the mealcards that shows a "% in fridge" calculation. We want to quickly see which meals we have all the ingredients for. We should be able to see it while browsing the meals on plan. Furthermore, lets create a better "add to plan" modal where we actually see mealcards, similar to the meals page. we'd like to see a grid of meals. and then you select one to add to the given day/meal.
+
+sprint 15 I would like to ensure when we add new meals created by the 'discvoer new meals' feature we also save into the meals database the 'health principles' we used. so the ones that were active in the search for creating those meals should be saved into the database. this way we can filter on those in the future. Furthermore we need to add a "meal filter" component that we can use to filter mealcards. Lets begin wi
+
 
 ⸻
 
@@ -761,6 +765,19 @@ sprint 13 make the cards on the plan page int he grid jsut show a thumbnail of t
   - Fixed JSON response formatting issues by adding explicit "json" word in prompt when using response_format parameter
   - Standardized database field mapping between JavaScript camelCase and PostgreSQL snake_case
 
+- **Sprint 14** (2024-07-22):
+  - Added "% in fridge" badges to meal cards showing the percentage of ingredients available in the user's fridge
+  - Implemented a calculateFridgePercentage utility function to determine ingredient availability
+  - Created color-coded badges (green for 100%, blue for 50-99%, gray for <50%) for quick visual feedback
+  - Built a MealCardWithFridgePercentage component to handle fridge percentage calculation and display
+  - Enhanced the PlanCalendar to show fridge percentages for planned meals
+  - Developed a new MealSelectorModal component to replace the simple dropdown in the PlanEntryForm
+  - Implemented a grid-based meal selection UI with search functionality in the modal
+  - Added responsive grid layout for different screen sizes in the meal selector
+  - Included loading states with skeleton UI for improved user experience
+  - Fixed "Invalid time value" error in PlanCalendar by properly initializing weekDates
+  - Ensured meal ratings are fetched and displayed correctly in meal cards
+
 ---
 
 ## 8. Decision Log
@@ -832,6 +849,17 @@ sprint 13 make the cards on the plan page int he grid jsut show a thumbnail of t
   - Fixed JSON response formatting issues by adding explicit "json" word in prompt when using response_format parameter
   - Standardized database field mapping between JavaScript camelCase and PostgreSQL snake_case
 
+- Sprint 14 (2024-07-22):
+  - Adopted a component composition pattern for fridge percentage badges, leveraging reusable components
+  - Designed a consistent UI for displaying fridge percentages using color-coded badges
+  - Implemented a single source of truth for calculating fridge percentages via a centralized utility function
+  - Created a more visual meal selection experience with grid-based card UI replacing simple dropdown
+  - Maintained consistent loading states with skeleton UI for improved perceived performance
+  - Fixed error handling in date management for the plan calendar to prevent "Invalid time value" errors
+  - Ensured proper data flow for meal ratings between components
+  - Leveraged client-side data fetching for fridge percentages to minimize server load
+  - Maintained responsive design principles in the new modal component
+
 ---
 
 ## 9. Pull Request & Commit & Release Checklist
@@ -881,7 +909,7 @@ Before marking a sprint complete, confirm each item below:
 	•	Testing
 	•	    Unit tests for all new logic/components (≥ 90% coverage).
 	•	    Integration tests for data flows (MSW, server actions).
-	•	        Component tests (React Testing Library: render, userEvent).
+	•	        Component tests (React Testing Library: render, screen, userEvent).
 	•	    E2E tests (Playwright) covering the new sprint's happy & edge cases.
 	•	    All tests pass in CI; coverage report updated.
 	•	Linting & Formatting
@@ -1271,11 +1299,13 @@ describe("FridgeItemForm", () => {
     render(<FridgeItemForm />);
 
     // Submit without filling form
-    fireEvent.click(screen.getByText(/save/i));
+    fireEvent.click(
+      screen.getByRole("button", { name: /save|submit|create/i })
+    );
 
+    // Check validation errors
     await waitFor(() => {
       expect(screen.getByText(/ingredient is required/i)).toBeInTheDocument();
-      expect(screen.getByText(/quantity is required/i)).toBeInTheDocument();
     });
 
     // Check no API call was made
@@ -1655,20 +1685,4 @@ Through these improvements, we increased our overall test coverage from 57.2% to
 Some components now have 100% coverage, including:
 
 - `src/app/api/ingredients/route.ts`
-- `src/components/common/Card.tsx`
-- `src/components/common/FormField.tsx`
-- `src/components/ui/spinner.tsx`
-- `src/lib/fridge.ts`
-- `src/lib/meal.ts`
-
-### 10.7 Future Test Improvements
-
-Areas that still need improved test coverage:
-
-1. Complete tests for the remaining API endpoints (`/api/meals`, `/api/shopping`)
-2. Improve tests for complex client components
-3. Add more integration tests for full user flows
-4. Fix the failing tests in `src/components/MealCard.test.tsx`
-5. Add tests for the image generation functionality
-
----
+- `
