@@ -4,8 +4,21 @@ import { useState, useEffect } from "react";
 import { Card } from "@/components/common/Card";
 import { Button } from "@/components/ui/button";
 import { MealImage } from "../meals/MealImage";
-import { PlusIcon, EditIcon, TrashIcon } from "lucide-react";
-import { format, addDays, startOfWeek } from "date-fns";
+import {
+  PlusIcon,
+  EditIcon,
+  TrashIcon,
+  ChevronLeft,
+  ChevronRight,
+} from "lucide-react";
+import {
+  format,
+  addDays,
+  startOfWeek,
+  addWeeks,
+  isSameDay,
+  parseISO,
+} from "date-fns";
 import { cn } from "@/lib/utils";
 import {
   Tooltip,
@@ -17,6 +30,7 @@ import { PlanEntry, fridgeService } from "@/lib/api-services";
 import { calculateFridgePercentage } from "@/lib/meal";
 import { Badge } from "@/components/ui/badge";
 import { MealSelectorModal } from "./MealSelectorModal";
+import { toast } from "sonner";
 
 // Define the days of the week
 const days = [
@@ -45,15 +59,22 @@ export function PlanCalendar({
   onEditEntry,
   onDeleteEntry,
 }: PlanCalendarProps) {
+  // Add week offset state
+  const [weekOffset, setWeekOffset] = useState(0);
+
   // State for MealSelectorModal
   const [isMealSelectorOpen, setIsMealSelectorOpen] = useState(false);
   const [selectedDay, setSelectedDay] = useState<string>("");
   const [selectedMealType, setSelectedMealType] = useState<string>("");
+  const [editingEntry, setEditingEntry] = useState<PlanEntry | null>(null);
+  const [isLoading, setIsLoading] = useState(false);
 
-  // Get the current week's dates - define this function before using it
-  const getCurrentWeekDates = () => {
+  // Get the week's dates with the offset - define this function before using it
+  const getWeekDates = (offset = 0) => {
     // Start with Monday as the first day of the week
-    const monday = startOfWeek(new Date(), { weekStartsOn: 1 });
+    const monday = startOfWeek(addWeeks(new Date(), offset), {
+      weekStartsOn: 1,
+    });
 
     // Create a record with each day of the week and its date
     return days.reduce((acc, day, index) => {
@@ -64,13 +85,21 @@ export function PlanCalendar({
 
   // Track the current week dates - initialize with default values
   const [weekDates, setWeekDates] = useState<Record<string, Date>>(() =>
-    getCurrentWeekDates()
+    getWeekDates(weekOffset)
   );
 
-  // Update week dates on component mount - redundant now but keeping for safety
+  // Get week range display text
+  const getWeekRangeText = () => {
+    const startDate = weekDates["monday"];
+    const endDate = weekDates["sunday"];
+    if (!startDate || !endDate) return "";
+    return `${format(startDate, "MMM d")} - ${format(endDate, "MMM d, yyyy")}`;
+  };
+
+  // Update week dates when offset changes
   useEffect(() => {
-    setWeekDates(getCurrentWeekDates());
-  }, []);
+    setWeekDates(getWeekDates(weekOffset));
+  }, [weekOffset]);
 
   // Format a date string to get day of week (lowercase)
   const getDayOfWeek = (dateStr: string): string => {
@@ -95,17 +124,28 @@ export function PlanCalendar({
     // Save the selected day and meal type
     setSelectedDay(formattedDate);
     setSelectedMealType(mealType);
+    setEditingEntry(null); // Not editing an existing entry
 
     // Open the meal selector modal
     setIsMealSelectorOpen(true);
   };
 
+  // Handle clicking edit on an existing entry
+  const handleEditClick = (entry: PlanEntry) => {
+    setEditingEntry(entry);
+    setSelectedDay(entry.date);
+    setSelectedMealType(entry.meal_type);
+    setIsMealSelectorOpen(true);
+  };
+
   // Handle meal selection from the modal
-  const handleSelectMeal = (mealId: string) => {
-    // Call the onAddEntry with the saved day, meal type, and selected meal ID
-    if (selectedDay && selectedMealType) {
-      // Create a plan entry with the selected meal
-      createPlanEntry(selectedDay, selectedMealType, mealId);
+  const handleSelectMeal = async (mealId: string) => {
+    if (editingEntry) {
+      // Update existing entry
+      await updatePlanEntry(editingEntry.id, mealId);
+    } else if (selectedDay && selectedMealType) {
+      // Create a new plan entry
+      await createPlanEntry(selectedDay, selectedMealType, mealId);
     }
   };
 
@@ -116,6 +156,7 @@ export function PlanCalendar({
     mealId: string
   ) => {
     try {
+      setIsLoading(true);
       const response = await fetch("/api/plan", {
         method: "POST",
         headers: {
@@ -132,19 +173,76 @@ export function PlanCalendar({
         throw new Error("Failed to create plan entry");
       }
 
+      toast.success("Meal added to plan");
+
       // Refresh the entries after successful creation
       onAddEntry(date, mealType);
     } catch (error) {
       console.error("Error creating plan entry:", error);
+      toast.error("Failed to add meal to plan");
+    } finally {
+      setIsLoading(false);
     }
   };
 
-  // Group entries by day and meal type
+  // Update a plan entry with a new meal
+  const updatePlanEntry = async (entryId: string, mealId: string) => {
+    try {
+      setIsLoading(true);
+      const response = await fetch(`/api/plan/${entryId}`, {
+        method: "PUT",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          meal_id: mealId,
+          date: selectedDay,
+          meal_type: selectedMealType,
+        }),
+      });
+
+      if (!response.ok) {
+        throw new Error("Failed to update plan entry");
+      }
+
+      toast.success("Meal updated successfully");
+
+      // Refresh the entries after successful update
+      onEditEntry({ id: entryId } as PlanEntry);
+    } catch (error) {
+      console.error("Error updating plan entry:", error);
+      toast.error("Failed to update meal");
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  // Filter entries by the specific dates in the current week view
+  const filterEntriesByWeekDay = (
+    entries: PlanEntry[],
+    day: string,
+    mealType: string
+  ) => {
+    const targetDate = weekDates[day];
+    if (!targetDate) return [];
+
+    return entries.filter((entry) => {
+      try {
+        // Parse the entry date
+        const entryDate = parseISO(entry.date);
+        // Check if it's the same day as our target date AND the correct meal type
+        return isSameDay(entryDate, targetDate) && entry.meal_type === mealType;
+      } catch (error) {
+        console.error("Error parsing date:", error);
+        return false;
+      }
+    });
+  };
+
+  // Group entries by day and meal type for the specific week
   const entriesByDayAndType = days.reduce((acc, day) => {
     acc[day] = mealTypes.reduce((mealAcc, type) => {
-      mealAcc[type] = entries.filter(
-        (entry) => getDayOfWeek(entry.date) === day && entry.meal_type === type
-      );
+      mealAcc[type] = filterEntriesByWeekDay(entries, day, type);
       return mealAcc;
     }, {} as Record<string, PlanEntry[]>);
     return acc;
@@ -152,6 +250,46 @@ export function PlanCalendar({
 
   return (
     <div className="flex flex-col space-y-6">
+      {/* Week navigation controls */}
+      <div className="flex justify-between items-center mb-2">
+        <Button
+          onClick={() => setWeekOffset((prev) => prev - 1)}
+          variant="outline"
+          size="sm"
+          className="flex items-center gap-1"
+        >
+          <ChevronLeft className="h-4 w-4" />
+          <span className="hidden sm:inline">Previous Week</span>
+        </Button>
+
+        <div className="text-center">
+          <h2 className="font-medium text-sm sm:text-base">
+            {getWeekRangeText()}
+          </h2>
+        </div>
+
+        <div className="flex gap-2">
+          {weekOffset !== 0 && (
+            <Button
+              onClick={() => setWeekOffset(0)}
+              variant="outline"
+              size="sm"
+            >
+              Current Week
+            </Button>
+          )}
+          <Button
+            onClick={() => setWeekOffset((prev) => prev + 1)}
+            variant="outline"
+            size="sm"
+            className="flex items-center gap-1"
+          >
+            <span className="hidden sm:inline">Next Week</span>
+            <ChevronRight className="h-4 w-4" />
+          </Button>
+        </div>
+      </div>
+
       {/* Day labels on desktop */}
       <div className="hidden md:grid md:grid-cols-7 gap-4 mb-2">
         {days.map((day) => (
@@ -192,7 +330,7 @@ export function PlanCalendar({
                         <MealCard
                           key={entry.id}
                           entry={entry}
-                          onEdit={() => onEditEntry(entry)}
+                          onEdit={() => handleEditClick(entry)}
                           onDelete={() => onDeleteEntry(entry.id)}
                         />
                       ))}

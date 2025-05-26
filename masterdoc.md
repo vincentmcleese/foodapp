@@ -687,6 +687,9 @@ sprint 16 As a user I would like to also be able to cycle through past weeks, so
 Sprint 17 Update the mealcards in the "discover meals" to look more like the mealcards on the /meals page.  Remove the cuisine time or preparation filters - they are not neccessary. Dont create images for the meals. We can updat the user ont he placeholder that "Save to create image"
 
 Sprint 18 Add a "I want something specific" button on the Discover new meals page. This opens a text prompt modal and allows the user to enrich the LLM prompt to discover new meals with extra context (ie. i want something with lots of onion!) so we can allow the user to tailor the discovery recommendation to be more specific.
+
+
+
 ⸻
 
 7. Implementation Progress
