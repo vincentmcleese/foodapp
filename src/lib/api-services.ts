@@ -160,6 +160,8 @@ export interface RecommendationRequest {
   cuisine?: string;
   maxPrepTime?: number;
   specificRequest?: string; // New parameter for specific user requests
+  healthPrinciples?: string[]; // Add this field for filtering by health principles
+  sortBy?: "fridgePercentage" | "name" | "created";
 }
 
 // Fridge Item API Service
