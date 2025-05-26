@@ -21,7 +21,7 @@ export function PageLayout({
   contentClassName,
 }: PageLayoutProps) {
   return (
-    <div className={cn("container max-w-4xl px-4 py-6 space-y-6", className)}>
+    <div className={cn("container max-w-6xl px-4 py-6 space-y-6", className)}>
       {(title || actions) && (
         <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
           <div>
