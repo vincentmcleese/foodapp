@@ -159,8 +159,7 @@ export interface RecommendationRequest {
   pageSize?: number;
   cuisine?: string;
   maxPrepTime?: number;
-  healthPrinciples?: string[]; // Add this field for filtering by health principles
-  sortBy?: "fridgePercentage" | "name" | "created";
+  specificRequest?: string; // New parameter for specific user requests
 }
 
 // Fridge Item API Service
@@ -561,7 +560,13 @@ export const mealService = {
     options: RecommendationRequest = {}
   ): Promise<MealRecommendation[]> {
     try {
-      const { page = 1, pageSize = 3, cuisine, maxPrepTime } = options;
+      const {
+        page = 1,
+        pageSize = 3,
+        cuisine,
+        maxPrepTime,
+        specificRequest,
+      } = options;
       const url = new URL(
         `${window.location.origin}/api/meals/recommendations`
       );
@@ -574,6 +579,9 @@ export const mealService = {
       }
       if (maxPrepTime) {
         url.searchParams.append("maxPrepTime", maxPrepTime.toString());
+      }
+      if (specificRequest) {
+        url.searchParams.append("specificRequest", specificRequest);
       }
 
       const response = await fetch(url.toString());

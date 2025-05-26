@@ -62,13 +62,15 @@ export async function generateMealRecommendations(
   fridgeItems: FridgeItem[],
   healthPrinciples: HealthPrinciple[],
   mealRatings: MealRating[],
-  count: number = 3
+  count: number = 3,
+  specificRequest?: string
 ): Promise<RecommendedMeal[]> {
   console.log("generateMealRecommendations called with:", {
     fridgeItemsCount: fridgeItems.length,
     healthPrinciplesCount: healthPrinciples.length,
     mealRatingsCount: mealRatings.length,
     count,
+    hasSpecificRequest: !!specificRequest,
   });
 
   // Check if API key is configured
@@ -106,6 +108,11 @@ export async function generateMealRecommendations(
             .join(", ")}`
         : "";
 
+    // Add specific request if provided
+    const specificRequestPrompt = specificRequest
+      ? `Specific request: ${specificRequest}`
+      : "";
+
     // Create system prompt - simplified to reduce token count
     const systemPrompt = `You are a chef who creates meal recommendations. Respond with valid JSON.`;
 
@@ -115,6 +122,7 @@ export async function generateMealRecommendations(
     }.
 ${healthPrinciplesPrompt}
 ${ratingsPrompt}
+${specificRequestPrompt}
 
 Format your response as this JSON:
 {
@@ -142,9 +150,12 @@ Format your response as this JSON:
 
     console.log("Calling OpenAI API with optimized prompts");
 
-    // Call OpenAI API - using a faster model for initial recommendations
+    // Use GPT-4o for specific requests as they need more context understanding
+    const model = specificRequest ? "gpt-4o" : "gpt-3.5-turbo-0125";
+
+    // Call OpenAI API
     const completion = await openai.chat.completions.create({
-      model: "gpt-3.5-turbo-0125", // Using the 3.5 model for speed
+      model: model, // Use better model for specific requests
       messages: [
         { role: "system", content: systemPrompt },
         { role: "user", content: userPrompt },

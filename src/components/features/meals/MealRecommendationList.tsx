@@ -11,15 +11,20 @@ import {
 import { Button } from "@/components/ui/button";
 import { Toaster, toast } from "sonner";
 import { PageLayout } from "@/components/common/PageLayout";
+import { Sparkles } from "lucide-react";
 
 interface MealRecommendationListProps {
   initialRecommendations: MealRecommendation[];
   activeHealthPrinciples?: HealthPrinciple[];
+  specificRequest?: string | null;
+  onRequestSpecific?: () => void;
 }
 
 export function MealRecommendationList({
   initialRecommendations,
   activeHealthPrinciples = [],
+  specificRequest,
+  onRequestSpecific,
 }: MealRecommendationListProps) {
   console.log(
     "MealRecommendationList rendered with",
@@ -46,6 +51,7 @@ export function MealRecommendationList({
       const options: RecommendationRequest = {
         page: nextPage,
         pageSize: 3,
+        specificRequest: specificRequest || undefined,
       };
 
       const newRecommendations = await mealService.getRecommendations(options);
@@ -102,10 +108,27 @@ export function MealRecommendationList({
     }
   };
 
+  // Customize page actions based on props
+  const pageActions = onRequestSpecific ? (
+    <Button
+      onClick={onRequestSpecific}
+      className="flex items-center gap-2"
+      variant="outline"
+    >
+      <Sparkles className="h-4 w-4" />I want something specific
+    </Button>
+  ) : null;
+
+  // Customize subtitle based on whether there's a specific request
+  const subtitle = specificRequest
+    ? `Personalized meals for: "${specificRequest}"`
+    : "Personalized meal recommendations based on your fridge ingredients, health principles, and meal ratings.";
+
   return (
     <PageLayout
       title="Discover New Meals"
-      subtitle="Personalized meal recommendations based on your fridge ingredients, health principles, and meal ratings."
+      subtitle={subtitle}
+      actions={pageActions}
     >
       {/* Results count */}
       <p className="text-gray-600 mb-4">

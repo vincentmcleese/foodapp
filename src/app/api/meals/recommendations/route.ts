@@ -14,8 +14,16 @@ export async function GET(request: Request) {
     const maxPrepTime = url.searchParams.get("maxPrepTime")
       ? parseInt(url.searchParams.get("maxPrepTime") as string, 10)
       : undefined;
+    const specificRequest =
+      url.searchParams.get("specificRequest") || undefined;
 
-    console.log("Request params:", { page, pageSize, cuisine, maxPrepTime });
+    console.log("Request params:", {
+      page,
+      pageSize,
+      cuisine,
+      maxPrepTime,
+      specificRequest,
+    });
 
     // Get fridge items to generate recommendations from
     const { data: fridgeItems, error: fridgeError } = await supabaseAdmin.from(
@@ -80,7 +88,8 @@ export async function GET(request: Request) {
       fridgeItems || [],
       healthPrinciples || [],
       mealRatings || [],
-      pageSize
+      pageSize,
+      specificRequest
     );
 
     console.log("Recommendations generated:", recommendations?.length || 0);
@@ -127,6 +136,7 @@ export async function GET(request: Request) {
       total: filteredRecommendations.length,
       page,
       pageSize,
+      specificRequest,
     });
   } catch (error) {
     console.error("Error generating meal recommendations:", error);

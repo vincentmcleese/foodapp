@@ -7,6 +7,9 @@ import { PageLayout } from "@/components/common/PageLayout";
 import { Spinner } from "@/components/ui/spinner";
 import { Skeleton } from "@/components/ui/skeleton";
 import { HealthPrinciple } from "@/lib/api-services";
+import { SpecificRequestModal } from "@/components/features/meals/SpecificRequestModal";
+import { Button } from "@/components/ui/button";
+import { Sparkles } from "lucide-react";
 
 // Enhanced loading component
 function RecommendationsLoading() {
@@ -46,51 +49,78 @@ export default function DiscoverPage() {
   const [activeHealthPrinciples, setActiveHealthPrinciples] = useState<
     HealthPrinciple[]
   >([]);
+  const [isModalOpen, setIsModalOpen] = useState(false);
+  const [isGeneratingSpecific, setIsGeneratingSpecific] = useState(false);
+  const [specificRequest, setSpecificRequest] = useState<string | null>(null);
+
+  const fetchRecommendations = async (specific?: string) => {
+    try {
+      console.log("Starting to fetch data for recommendations");
+      setIsLoading(true);
+
+      // First, fetch active health principles
+      const healthResponse = await fetch("/api/health/principles");
+      if (healthResponse.ok) {
+        const healthData = await healthResponse.json();
+        const activePrinciples = healthData.filter(
+          (principle: HealthPrinciple) => principle.enabled
+        );
+        setActiveHealthPrinciples(activePrinciples);
+      }
+
+      // Fetch data for recommendations via API endpoint
+      let url = "/api/meals/recommendations";
+
+      // Add specific request parameter if provided
+      if (specific) {
+        url += `?specificRequest=${encodeURIComponent(specific)}`;
+      }
+
+      const response = await fetch(url);
+      if (!response.ok) {
+        throw new Error(`Failed to fetch recommendations: ${response.status}`);
+      }
+
+      const data = await response.json();
+      console.log(
+        "Recommendations fetched:",
+        data.recommendations?.length || 0
+      );
+
+      setRecommendations(data.recommendations || []);
+      setError(null);
+    } catch (err) {
+      console.error("Error in fetchRecommendations:", err);
+      setError(err instanceof Error ? err.message : String(err));
+    } finally {
+      setIsLoading(false);
+      setIsGeneratingSpecific(false);
+    }
+  };
 
   useEffect(() => {
-    async function fetchRecommendations() {
-      try {
-        console.log("Starting to fetch data for recommendations");
-        setIsLoading(true);
-
-        // First, fetch active health principles
-        const healthResponse = await fetch("/api/health/principles");
-        if (healthResponse.ok) {
-          const healthData = await healthResponse.json();
-          const activePrinciples = healthData.filter(
-            (principle: HealthPrinciple) => principle.enabled
-          );
-          setActiveHealthPrinciples(activePrinciples);
-        }
-
-        // Fetch data for recommendations via API endpoint
-        const response = await fetch("/api/meals/recommendations");
-        if (!response.ok) {
-          throw new Error(
-            `Failed to fetch recommendations: ${response.status}`
-          );
-        }
-
-        const data = await response.json();
-        console.log(
-          "Recommendations fetched:",
-          data.recommendations?.length || 0
-        );
-
-        setRecommendations(data.recommendations || []);
-        setError(null);
-      } catch (err) {
-        console.error("Error in fetchRecommendations:", err);
-        setError(err instanceof Error ? err.message : String(err));
-      } finally {
-        setIsLoading(false);
-      }
-    }
-
     fetchRecommendations();
   }, []);
 
-  if (isLoading) {
+  const handleSpecificRequest = async (request: string) => {
+    setIsModalOpen(false);
+    setIsGeneratingSpecific(true);
+    setSpecificRequest(request);
+    await fetchRecommendations(request);
+  };
+
+  // Custom actions for the PageLayout
+  const pageActions = (
+    <Button
+      onClick={() => setIsModalOpen(true)}
+      className="flex items-center gap-2"
+      variant="outline"
+    >
+      <Sparkles className="h-4 w-4" />I want something specific
+    </Button>
+  );
+
+  if (isLoading && !isGeneratingSpecific) {
     return <RecommendationsLoading />;
   }
 
@@ -106,9 +136,38 @@ export default function DiscoverPage() {
   }
 
   return (
-    <MealRecommendationList
-      initialRecommendations={recommendations}
-      activeHealthPrinciples={activeHealthPrinciples}
-    />
+    <>
+      {isGeneratingSpecific ? (
+        <PageLayout
+          title="Generating Specific Recommendations"
+          subtitle={`Creating meal ideas for: "${specificRequest}"`}
+          actions={pageActions}
+        >
+          <div className="flex flex-col items-center justify-center py-12">
+            <Spinner size="lg" className="text-primary mb-4" />
+            <p className="text-lg font-medium text-primary">
+              Generating personalized recommendations...
+            </p>
+            <p className="text-gray-500 mt-2">
+              This may take a moment as we craft meals tailored to your request.
+            </p>
+          </div>
+        </PageLayout>
+      ) : (
+        <MealRecommendationList
+          initialRecommendations={recommendations}
+          activeHealthPrinciples={activeHealthPrinciples}
+          specificRequest={specificRequest}
+          onRequestSpecific={() => setIsModalOpen(true)}
+        />
+      )}
+
+      <SpecificRequestModal
+        isOpen={isModalOpen}
+        onClose={() => setIsModalOpen(false)}
+        onSubmit={handleSpecificRequest}
+        isLoading={isGeneratingSpecific}
+      />
+    </>
   );
 }
