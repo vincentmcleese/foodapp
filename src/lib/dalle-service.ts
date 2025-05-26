@@ -16,10 +16,16 @@ export async function generateFoodImage(
       apiKey: process.env.OPENAI_API_KEY,
     });
 
-    // Use the exact prompt specified in the masterdoc, adjusted slightly for meals vs ingredients
-    const prompt = `A photorealistic, high-resolution food photograph of ${
-      type === "meal" ? "" : "a "
-    }${subject}, elegantly plated on a round, off-white, lightly speckled ceramic plate. The plate sits centered on a warm, medium-tone wooden table with visible wood grain. The image is captured from a top-down (90-degree overhead) angle with soft, natural lighting from the top left. Use shallow depth of field, neutral shadows, and a clean white background outside the plate. The composition should follow consistent proportions: plate fills 80% of the frame, centered precisely. The overall style matches high-end editorial food photography.`;
+    // Use different prompts for meals and ingredients
+    let prompt: string;
+
+    if (type === "meal") {
+      // Original meal prompt
+      prompt = `A photorealistic, high-resolution food photograph of ${subject}, elegantly plated on a round, off-white, lightly speckled ceramic plate. The plate sits centered on a warm, medium-tone wooden table with visible wood grain. The image is captured from a top-down (90-degree overhead) angle with soft, natural lighting from the top left. Use shallow depth of field, neutral shadows, and a clean white background outside the plate. The composition should follow consistent proportions: plate fills 80% of the frame, centered precisely. The overall style matches high-end editorial food photography.`;
+    } else {
+      // New ingredient prompt
+      prompt = `A photorealistic, high-resolution food photograph of a freshly prepared ${subject} on a soft white background. The image is captured from a top-down (90-degree overhead) angle with soft, natural lighting from the top left. Use shallow depth of field, neutral shadows, and a clean white background. The composition should follow consistent proportions: food item fills 80% of the frame, centered precisely. The overall style matches high-end editorial food photography. Do not add any other items other than the food item.`;
+    }
 
     console.log(`Generating image for ${type}: ${subject}`);
 
