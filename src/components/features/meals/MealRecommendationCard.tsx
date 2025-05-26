@@ -1,24 +1,10 @@
 "use client";
 
 import { useState } from "react";
-import {
-  Card,
-  CardContent,
-  CardDescription,
-  CardFooter,
-  CardHeader,
-  CardTitle,
-} from "@/components/ui/card";
+import { Card } from "@/components/common/Card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import {
-  Save,
-  Clock as ClockIcon,
-  Users as UsersIcon,
-  ChevronDown,
-  ChevronUp,
-  Loader2,
-} from "lucide-react";
+import { Save, ChevronDown, ChevronUp, Loader2 } from "lucide-react";
 import { MealRecommendation } from "@/lib/api-services";
 import { MealImage } from "./MealImage";
 import { cn } from "@/lib/utils";
@@ -50,88 +36,48 @@ export function MealRecommendationCard({
     fat: 0,
   };
 
-  // Create a nutrition summary component
-  const NutritionItem = ({
-    label,
-    value,
-    unit,
-  }: {
-    label: string;
-    value: number;
-    unit: string;
-  }) => (
-    <div className="text-center">
-      <div className="font-medium text-lg">{value}</div>
-      <div className="text-xs text-gray-500">
-        {label} ({unit})
-      </div>
-    </div>
-  );
-
   return (
-    <Card className="w-full h-full flex flex-col overflow-hidden transition-all duration-200 hover:shadow-lg border-2 border-transparent hover:border-indigo-100">
-      <div className="h-44 w-full">
-        <MealImage
-          imageUrl={meal.image_url}
-          status={meal.image_status || "pending"}
-          name={meal.name}
-          width={400}
-          height={176}
-          className="h-full w-full"
-        />
-      </div>
-      <CardHeader className="pb-2">
+    <Card className={cn("overflow-hidden")}>
+      <div className="flex flex-col gap-4">
+        <div className="h-40 w-full -mx-6 -mt-6 mb-2 relative">
+          <MealImage
+            imageUrl={null}
+            status="pending"
+            name={meal.name}
+            width={400}
+            height={160}
+            className="h-full w-full"
+          />
+          <div className="absolute inset-0 flex items-center justify-center bg-gray-100 bg-opacity-60">
+            <p className="text-sm text-gray-700 font-medium px-4 py-2 bg-white rounded-md shadow-sm">
+              Save to create image
+            </p>
+          </div>
+        </div>
+
         <div className="flex justify-between items-start">
           <div>
-            <CardTitle className="text-xl font-bold">{meal.name}</CardTitle>
-            <CardDescription className="text-sm mt-1">
-              {meal.description}
-            </CardDescription>
-          </div>
-          <Badge
-            variant="outline"
-            className="bg-indigo-50 text-indigo-700 px-2 py-1 text-xs"
-          >
-            {meal.cuisine}
-          </Badge>
-        </div>
-      </CardHeader>
-      <CardContent className="flex-grow pb-2">
-        <div className="flex items-center text-sm text-gray-500 mb-3">
-          <div className="flex items-center mr-4">
-            <ClockIcon className="w-4 h-4 mr-1" />
-            <span>{meal.prepTime + meal.cookTime} min</span>
-          </div>
-          <div className="flex items-center">
-            <UsersIcon className="w-4 h-4 mr-1" />
-            <span>{meal.servings} servings</span>
+            <h3 className="font-semibold text-lg text-neutral-800">
+              {meal.name}
+            </h3>
+            <p className="text-sm text-neutral-600 mt-1">{meal.description}</p>
           </div>
         </div>
 
-        <div className="mb-3">
-          <h4 className="text-sm font-medium mb-1">Nutrition</h4>
-          <div className="grid grid-cols-4 gap-2 mb-4">
-            <NutritionItem
-              label="Calories"
-              value={Math.round(nutrition.calories)}
-              unit="kcal"
-            />
-            <NutritionItem
-              label="Protein"
-              value={Math.round(nutrition.protein)}
-              unit="g"
-            />
-            <NutritionItem
-              label="Carbs"
-              value={Math.round(nutrition.carbs)}
-              unit="g"
-            />
-            <NutritionItem
-              label="Fat"
-              value={Math.round(nutrition.fat)}
-              unit="g"
-            />
-          </div>
+        <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 mt-2">
+          <NutritionInfo
+            label="Calories"
+            value={`${Math.round(nutrition.calories)} kcal`}
+          />
+          <NutritionInfo
+            label="Protein"
+            value={`${Math.round(nutrition.protein)}g`}
+          />
+          <NutritionInfo
+            label="Carbs"
+            value={`${Math.round(nutrition.carbs)}g`}
+          />
+          <NutritionInfo label="Fat" value={`${Math.round(nutrition.fat)}g`} />
         </div>
 
         <div>
@@ -140,7 +86,10 @@ export function MealRecommendationCard({
             {meal.ingredients
               .slice(0, expanded ? meal.ingredients.length : 3)
               .map((ingredient, idx) => (
-                <li key={`${meal.id}-ing-${idx}`} className="flex items-start">
+                <li
+                  key={`${meal.id || idx}-ing-${idx}`}
+                  className="flex items-start"
+                >
                   <span className="text-gray-800">
                     {ingredient.quantity} {ingredient.unit} {ingredient.name}
                   </span>
@@ -167,29 +116,31 @@ export function MealRecommendationCard({
           </ul>
         </div>
 
-        {expanded && (
-          <div className="mt-4">
-            <h4 className="text-sm font-medium mb-1">Instructions</h4>
-            <p className="text-sm text-gray-700 whitespace-pre-line">
-              {meal.instructions}
-            </p>
-          </div>
-        )}
-      </CardContent>
-      <CardFooter className="pt-2 pb-3 flex-shrink-0">
-        <Button
-          onClick={handleSave}
-          disabled={isSaving}
-          className="w-full bg-indigo-600 hover:bg-indigo-700 text-white"
-        >
-          {isSaving ? (
-            <Loader2 className="h-4 w-4 mr-2 animate-spin" />
-          ) : (
-            <Save className="w-4 h-4 mr-2" />
-          )}
-          {isSaving ? "Saving..." : "Save to My Meals"}
-        </Button>
-      </CardFooter>
+        <div className="flex justify-end mt-2">
+          <Button onClick={handleSave} disabled={isSaving} className="w-full">
+            {isSaving ? (
+              <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+            ) : (
+              <Save className="w-4 h-4 mr-2" />
+            )}
+            {isSaving ? "Saving..." : "Save to My Meals"}
+          </Button>
+        </div>
+      </div>
     </Card>
+  );
+}
+
+interface NutritionInfoProps {
+  label: string;
+  value: string;
+}
+
+function NutritionInfo({ label, value }: NutritionInfoProps) {
+  return (
+    <div className="flex flex-col items-center text-center">
+      <span className="text-xs text-neutral-500">{label}</span>
+      <span className="text-sm font-medium text-neutral-700">{value}</span>
+    </div>
   );
 }

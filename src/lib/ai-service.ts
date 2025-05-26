@@ -62,7 +62,7 @@ export async function generateMealRecommendations(
   fridgeItems: FridgeItem[],
   healthPrinciples: HealthPrinciple[],
   mealRatings: MealRating[],
-  count: number = 6
+  count: number = 3
 ): Promise<RecommendedMeal[]> {
   console.log("generateMealRecommendations called with:", {
     fridgeItemsCount: fridgeItems.length,
@@ -78,71 +78,57 @@ export async function generateMealRecommendations(
   }
 
   try {
-    // Format fridge items for prompt
-    const fridgeItemsPrompt = fridgeItems
+    // Format fridge items for prompt - only include top 15 items to reduce token count
+    const limitedFridgeItems = fridgeItems.slice(0, 15);
+    const fridgeItemsPrompt = limitedFridgeItems
       .map((item) => `${item.quantity} ${item.unit} of ${item.ingredient.name}`)
       .join(", ");
 
-    // Format health principles for prompt
+    // Format health principles for prompt - only include enabled principles
     const enabledPrinciples = healthPrinciples
       .filter((principle) => principle.enabled)
-      .map((principle) =>
-        principle.description
-          ? `${principle.name}: ${principle.description}`
-          : principle.name
-      )
-      .join("\n- ");
+      .map((principle) => principle.name)
+      .join(", ");
 
     const healthPrinciplesPrompt = enabledPrinciples
-      ? `\n\nHealth Principles to follow:\n- ${enabledPrinciples}`
+      ? `Health Principles: ${enabledPrinciples}`
       : "";
 
-    // Format meal ratings for prompt
+    // Format meal ratings for prompt - only include top 5 ratings
+    const topRatings = mealRatings
+      .sort((a, b) => b.rating - a.rating)
+      .slice(0, 5);
+
     const ratingsPrompt =
-      mealRatings.length > 0
-        ? `\n\nPreviously rated meals:\n${mealRatings
-            .map((rating) => `- ${rating.meal.name}: ${rating.rating}/5`)
-            .join("\n")}`
+      topRatings.length > 0
+        ? `Highly rated meals: ${topRatings
+            .map((rating) => rating.meal.name)
+            .join(", ")}`
         : "";
 
-    // Create system prompt
-    const systemPrompt = `You are a professional chef and nutritionist who creates personalized meal recommendations. 
-Focus on healthy, balanced meals that are practical to prepare at home.
-Always respond with a valid JSON object as specified in the user's request.`;
+    // Create system prompt - simplified to reduce token count
+    const systemPrompt = `You are a chef who creates meal recommendations. Respond with valid JSON.`;
 
-    // Create user prompt
-    const userPrompt = `Please recommend ${count} meals based on the following information:
+    // Create user prompt - simplified with less detail to reduce token count and processing time
+    const userPrompt = `Create ${count} meal recommendations using these ingredients: ${
+      fridgeItemsPrompt || "any ingredients"
+    }.
+${healthPrinciplesPrompt}
+${ratingsPrompt}
 
-Available Ingredients:
-${
-  fridgeItemsPrompt || "No specific ingredients available"
-}${healthPrinciplesPrompt}${ratingsPrompt}
-
-For each meal, provide:
-1. A descriptive name
-2. A brief description
-3. Step-by-step instructions
-4. Preparation time (in minutes)
-5. Cooking time (in minutes)
-6. Number of servings
-7. Cuisine type
-8. List of ingredients with quantities and units
-9. Nutrition information (calories, protein, carbs, fat)
-
-Format your response as a valid JSON object EXACTLY as follows:
+Format your response as this JSON:
 {
   "recommendations": [
     {
       "name": "Meal Name",
       "description": "Brief description",
-      "instructions": "Step by step instructions",
+      "instructions": "Steps",
       "prepTime": 15,
       "cookTime": 25,
       "servings": 4,
-      "cuisine": "Cuisine type",
+      "cuisine": "Type",
       "ingredients": [
-        {"name": "Ingredient 1", "quantity": 200, "unit": "g"},
-        {"name": "Ingredient 2", "quantity": 1, "unit": "cup"}
+        {"name": "Ingredient", "quantity": 200, "unit": "g"}
       ],
       "nutrition": {
         "calories": 350,
@@ -151,21 +137,21 @@ Format your response as a valid JSON object EXACTLY as follows:
         "fat": 12
       }
     }
-    // Additional meals as needed
   ]
 }`;
 
-    console.log("Calling OpenAI API with prompts");
+    console.log("Calling OpenAI API with optimized prompts");
 
-    // Call OpenAI API
+    // Call OpenAI API - using a faster model for initial recommendations
     const completion = await openai.chat.completions.create({
-      model: "gpt-4o",
+      model: "gpt-3.5-turbo-0125", // Using the 3.5 model for speed
       messages: [
         { role: "system", content: systemPrompt },
         { role: "user", content: userPrompt },
       ],
       response_format: { type: "json_object" },
       temperature: 0.7,
+      max_tokens: 2500, // Limiting token output for faster response
     });
 
     // Parse and return the recommendations
@@ -179,54 +165,19 @@ Format your response as a valid JSON object EXACTLY as follows:
 
     try {
       const parsedResponse = JSON.parse(responseContent);
-      console.log("Response structure:", Object.keys(parsedResponse));
 
       // Check if the response has recommendations field
-      if (parsedResponse.recommendations) {
+      if (
+        parsedResponse.recommendations &&
+        Array.isArray(parsedResponse.recommendations)
+      ) {
         return parsedResponse.recommendations;
       }
 
-      // Check if the response is already an array of meal recommendations
-      if (Array.isArray(parsedResponse) && parsedResponse.length > 0) {
-        console.log("Found array directly in response");
-        return parsedResponse;
-      }
-
-      // Check if response might be under a different key
-      for (const key in parsedResponse) {
-        if (
-          Array.isArray(parsedResponse[key]) &&
-          parsedResponse[key].length > 0
-        ) {
-          console.log(`Found array under key: ${key}`);
-          return parsedResponse[key];
-        }
-      }
-
-      // Check if the response is a single meal recommendation object
-      if (
-        typeof parsedResponse === "object" &&
-        parsedResponse.name &&
-        parsedResponse.ingredients
-      ) {
-        console.log("Found single meal recommendation object");
-        return [parsedResponse];
-      }
-
-      // If we have a completely empty object, update the prompt and try again
-      if (Object.keys(parsedResponse).length === 0) {
-        console.error("Empty object received from OpenAI");
-        return getMockRecommendations(count);
-      }
-
-      console.error(
-        "No valid recommendations found in the response:",
-        parsedResponse
-      );
+      console.error("No valid recommendations found in the response");
       return getMockRecommendations(count);
     } catch (parseError) {
       console.error("Error parsing OpenAI response:", parseError);
-      console.log("Raw response:", responseContent);
       return getMockRecommendations(count);
     }
   } catch (error) {

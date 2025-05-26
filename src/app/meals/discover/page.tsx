@@ -2,57 +2,39 @@
 
 import { useState, useEffect } from "react";
 import { MealRecommendationList } from "@/components/features/meals/MealRecommendationList";
-import { supabaseAdmin } from "@/lib/supabase";
 import { generateMealRecommendations } from "@/lib/ai-service";
-import { Skeleton } from "@/components/ui/skeleton";
 import { PageLayout } from "@/components/common/PageLayout";
 import { Spinner } from "@/components/ui/spinner";
+import { Skeleton } from "@/components/ui/skeleton";
 import { HealthPrinciple } from "@/lib/api-services";
 
 // Enhanced loading component
 function RecommendationsLoading() {
   return (
-    <div className="container mx-auto px-4 py-8">
-      <div className="mb-8">
-        <h1 className="text-3xl font-bold mb-4">Discover New Meals</h1>
-        <p className="text-gray-600 mb-8">
-          Generating personalized meal recommendations for you...
-        </p>
-
-        <div className="flex justify-center items-center mb-8">
-          <Spinner size="lg" className="text-primary mr-2" />
-          <span className="text-primary font-medium">
-            Loading recommendations
-          </span>
-        </div>
-
-        {/* Filters skeleton */}
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-8 p-6 bg-gray-50 rounded-xl">
-          <div>
-            <Skeleton className="h-4 w-24 mb-2" />
-            <Skeleton className="h-10 w-full" />
-          </div>
-          <div>
-            <Skeleton className="h-4 w-48 mb-2" />
-            <Skeleton className="h-4 w-full" />
-          </div>
-        </div>
+    <PageLayout
+      title="Discover New Meals"
+      subtitle="Generating personalized meal recommendations for you..."
+    >
+      <div className="flex justify-center items-center mb-8">
+        <Spinner size="lg" className="text-primary mr-2" />
+        <span className="text-primary font-medium">
+          Loading recommendations
+        </span>
       </div>
 
       {/* Skeleton cards */}
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-        {[1, 2, 3, 4, 5, 6].map((i) => (
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+        {[1, 2, 3, 4, 5, 6, 7, 8].map((i) => (
           <div key={i} className="border rounded-lg p-4 shadow-sm">
+            <Skeleton className="h-40 w-full mb-4" />
             <Skeleton className="h-6 w-3/4 mb-2" />
             <Skeleton className="h-4 w-full mb-4" />
             <Skeleton className="h-4 w-1/2 mb-2" />
-            <Skeleton className="h-4 w-2/3 mb-2" />
-            <Skeleton className="h-4 w-3/4 mb-4" />
             <Skeleton className="h-10 w-full" />
           </div>
         ))}
       </div>
-    </div>
+    </PageLayout>
   );
 }
 
@@ -114,16 +96,12 @@ export default function DiscoverPage() {
 
   if (error) {
     return (
-      <div className="container mx-auto px-4 py-8">
-        <h1 className="text-2xl font-bold text-red-600">
-          Error Loading Recommendations
-        </h1>
-        <p className="mt-4">
-          There was an error generating meal recommendations. Please try again
-          later.
-        </p>
+      <PageLayout
+        title="Error Loading Recommendations"
+        subtitle="There was an error generating meal recommendations. Please try again later."
+      >
         <p className="mt-2 text-gray-600">Error details: {error}</p>
-      </div>
+      </PageLayout>
     );
   }
 
