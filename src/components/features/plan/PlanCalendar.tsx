@@ -44,17 +44,7 @@ export function PlanCalendar({
   onEditEntry,
   onDeleteEntry,
 }: PlanCalendarProps) {
-  // Track the current week dates - initialize with default values
-  const [weekDates, setWeekDates] = useState<Record<string, Date>>(() =>
-    getCurrentWeekDates()
-  );
-
-  // Update week dates on component mount - redundant now but keeping for safety
-  useEffect(() => {
-    setWeekDates(getCurrentWeekDates());
-  }, []);
-
-  // Get the current week's dates
+  // Get the current week's dates - define this function before using it
   const getCurrentWeekDates = () => {
     // Start with Monday as the first day of the week
     const monday = startOfWeek(new Date(), { weekStartsOn: 1 });
@@ -65,6 +55,16 @@ export function PlanCalendar({
       return acc;
     }, {} as Record<string, Date>);
   };
+
+  // Track the current week dates - initialize with default values
+  const [weekDates, setWeekDates] = useState<Record<string, Date>>(() =>
+    getCurrentWeekDates()
+  );
+
+  // Update week dates on component mount - redundant now but keeping for safety
+  useEffect(() => {
+    setWeekDates(getCurrentWeekDates());
+  }, []);
 
   // Format a date string to get day of week (lowercase)
   const getDayOfWeek = (dateStr: string): string => {
