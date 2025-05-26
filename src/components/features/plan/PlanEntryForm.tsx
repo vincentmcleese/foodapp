@@ -27,10 +27,11 @@ import {
   PopoverContent,
   PopoverTrigger,
 } from "@/components/ui/popover";
-import { CalendarIcon } from "lucide-react";
+import { CalendarIcon, PlusCircleIcon } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { toast } from "sonner";
 import { Card } from "@/components/common/Card";
+import { MealSelectorModal } from "./MealSelectorModal";
 
 // Import date-fns correctly
 import { format, isValid } from "date-fns";
@@ -72,6 +73,8 @@ export function PlanEntryForm({
   const searchParams = useSearchParams();
   const [meals, setMeals] = useState<any[]>([]);
   const [isLoading, setIsLoading] = useState(false);
+  const [selectedMealName, setSelectedMealName] = useState<string>("");
+  const [isMealSelectorOpen, setIsMealSelectorOpen] = useState(false);
 
   // Get initial values from searchParams or entry
   const initialMealType = searchParams?.get("type") as
@@ -115,6 +118,16 @@ export function PlanEntryForm({
         }
         const data = await response.json();
         setMeals(data);
+
+        // Set selected meal name if we're editing
+        if (isEditing && entry?.meal_id) {
+          const selectedMeal = data.find(
+            (meal: any) => meal.id === entry.meal_id
+          );
+          if (selectedMeal) {
+            setSelectedMealName(selectedMeal.name);
+          }
+        }
       } catch (error) {
         console.error("Error fetching meals:", error);
         toast.error("Failed to fetch meals");
@@ -122,7 +135,18 @@ export function PlanEntryForm({
     };
 
     fetchMeals();
-  }, []);
+  }, [isEditing, entry]);
+
+  // Update the meal name when meal_id changes
+  useEffect(() => {
+    const mealId = form.watch("meal_id");
+    if (mealId && meals.length > 0) {
+      const selectedMeal = meals.find((meal) => meal.id === mealId);
+      if (selectedMeal) {
+        setSelectedMealName(selectedMeal.name);
+      }
+    }
+  }, [form.watch("meal_id"), meals]);
 
   const onSubmit = async (values: z.infer<typeof formSchema>) => {
     setIsLoading(true);
@@ -195,6 +219,15 @@ export function PlanEntryForm({
     return format(date, "PPP");
   };
 
+  // Handle meal selection from the modal
+  const handleSelectMeal = (mealId: string) => {
+    form.setValue("meal_id", mealId, { shouldValidate: true });
+    const selectedMeal = meals.find((meal) => meal.id === mealId);
+    if (selectedMeal) {
+      setSelectedMealName(selectedMeal.name);
+    }
+  };
+
   return (
     <Card className="p-6">
       <Form {...form}>
@@ -205,23 +238,20 @@ export function PlanEntryForm({
             render={({ field }) => (
               <FormItem>
                 <FormLabel>Meal</FormLabel>
-                <Select
-                  onValueChange={field.onChange}
-                  defaultValue={field.value}
-                >
-                  <FormControl>
-                    <SelectTrigger>
-                      <SelectValue placeholder="Select a meal" />
-                    </SelectTrigger>
-                  </FormControl>
-                  <SelectContent>
-                    {meals.map((meal) => (
-                      <SelectItem key={meal.id} value={meal.id}>
-                        {meal.name}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
+                <div className="flex gap-2">
+                  <Button
+                    type="button"
+                    variant="outline"
+                    className={cn(
+                      "w-full justify-between",
+                      !field.value && "text-muted-foreground"
+                    )}
+                    onClick={() => setIsMealSelectorOpen(true)}
+                  >
+                    {field.value ? selectedMealName : "Select a meal"}
+                    <PlusCircleIcon className="ml-2 h-4 w-4" />
+                  </Button>
+                </div>
                 <FormMessage />
               </FormItem>
             )}
@@ -300,6 +330,12 @@ export function PlanEntryForm({
           </Button>
         </form>
       </Form>
+
+      <MealSelectorModal
+        open={isMealSelectorOpen}
+        onOpenChange={setIsMealSelectorOpen}
+        onSelectMeal={handleSelectMeal}
+      />
     </Card>
   );
 }

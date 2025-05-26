@@ -7,6 +7,7 @@ import { PencilIcon, TrashIcon } from "lucide-react";
 import { MealRating } from "./MealRating";
 import { MealRatingSummary } from "@/lib/api-services";
 import { MealImage } from "./MealImage";
+import { Badge } from "@/components/ui/badge";
 
 export interface Meal {
   id: string;
@@ -32,6 +33,7 @@ export interface MealCardProps {
   showActions?: boolean;
   showRating?: boolean;
   onRatingChange?: (id: string, ratings: MealRatingSummary) => void;
+  fridgePercentage?: number;
 }
 
 export function MealCard({
@@ -44,6 +46,7 @@ export function MealCard({
   showActions = true,
   showRating = true,
   onRatingChange,
+  fridgePercentage,
 }: MealCardProps) {
   const handleClick = () => {
     if (onClick) onClick(meal.id);
@@ -65,6 +68,13 @@ export function MealCard({
     }
   };
 
+  // Get badge variant based on fridge percentage
+  const getBadgeVariant = (percentage: number) => {
+    if (percentage >= 100) return "success";
+    if (percentage >= 50) return "secondary";
+    return "default";
+  };
+
   return (
     <Card
       variant={variant}
@@ -72,7 +82,7 @@ export function MealCard({
       onClick={onClick ? handleClick : undefined}
     >
       <div className="flex flex-col gap-4">
-        <div className="h-40 w-full -mx-6 -mt-6 mb-2">
+        <div className="h-40 w-full -mx-6 -mt-6 mb-2 relative">
           <MealImage
             imageUrl={meal.image_url || meal.imageUrl}
             status={meal.image_status || "completed"}
@@ -81,6 +91,17 @@ export function MealCard({
             height={160}
             className="h-full w-full"
           />
+
+          {typeof fridgePercentage === "number" && (
+            <div className="absolute top-2 right-2">
+              <Badge
+                variant={getBadgeVariant(fridgePercentage)}
+                className="text-xs font-medium"
+              >
+                {fridgePercentage}% in fridge
+              </Badge>
+            </div>
+          )}
         </div>
 
         <div className="flex justify-between items-start">
@@ -151,11 +172,16 @@ export function MealCard({
   );
 }
 
-function NutritionInfo({ label, value }: { label: string; value: string }) {
+interface NutritionInfoProps {
+  label: string;
+  value: string;
+}
+
+function NutritionInfo({ label, value }: NutritionInfoProps) {
   return (
-    <div className="bg-neutral-50 rounded-lg p-2 text-center">
-      <p className="text-xs text-neutral-500">{label}</p>
-      <p className="text-sm font-medium">{value}</p>
+    <div className="flex flex-col items-center text-center">
+      <span className="text-xs text-neutral-500">{label}</span>
+      <span className="text-sm font-medium text-neutral-700">{value}</span>
     </div>
   );
 }

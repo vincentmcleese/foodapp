@@ -11,9 +11,13 @@ import { DiscoverButton } from "@/components/features/meals/DiscoverButton";
 export const dynamic = "force-dynamic";
 
 interface MealIngredient {
+  ingredient_id: string;
+  quantity: number;
+  unit: string;
   ingredient: {
     id: string;
     name: string;
+    ingredient_type?: string;
   };
 }
 
@@ -25,7 +29,8 @@ export default async function MealsPage() {
         *,
         ingredient (
           id,
-          name
+          name,
+          ingredient_type
         )
       )
     `);
@@ -33,6 +38,15 @@ export default async function MealsPage() {
   if (error) {
     console.error("Error fetching meals:", error);
     return <div>Error loading meals</div>;
+  }
+
+  // Fetch ratings for all meals
+  const { data: allRatings, error: ratingsError } = await supabaseAdmin
+    .from("meal_rating")
+    .select("*");
+
+  if (ratingsError) {
+    console.error("Error fetching meal ratings:", ratingsError);
   }
 
   // Process the meals data for display
@@ -45,10 +59,30 @@ export default async function MealsPage() {
       meal.meal_ingredient?.map((mi: MealIngredient) => mi.ingredient.name) ||
       [];
 
+    // Calculate rating summary for this meal
+    const mealRatings = allRatings
+      ? allRatings.filter((rating: any) => rating.meal_id === meal.id)
+      : [];
+
+    const likes = mealRatings.filter(
+      (r: { rating: boolean }) => r.rating === true
+    ).length;
+
+    const dislikes = mealRatings.filter(
+      (r: { rating: boolean }) => r.rating === false
+    ).length;
+
+    const ratingSummary = {
+      likes,
+      dislikes,
+      total: mealRatings.length,
+    };
+
     return {
       ...meal,
       totalCalories,
       ingredients,
+      ratings: ratingSummary,
     };
   });
 
@@ -94,7 +128,9 @@ export default async function MealsPage() {
                 fat: meal.nutrition?.fat,
                 image_url: meal.image_url,
                 image_status: meal.image_status,
+                ratings: meal.ratings,
               }}
+              mealIngredients={meal.meal_ingredient}
               variant="default"
               showActions={false}
               className="h-full"

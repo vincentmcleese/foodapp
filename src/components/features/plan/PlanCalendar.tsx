@@ -1,12 +1,11 @@
 "use client";
 
-import { useState } from "react";
-import { PlanEntry } from "@/lib/api-services";
+import { useState, useEffect } from "react";
 import { Card } from "@/components/common/Card";
 import { Button } from "@/components/ui/button";
-import { PlusIcon, EditIcon, TrashIcon, CalendarIcon } from "lucide-react";
-import { format, addDays } from "date-fns";
 import { MealImage } from "../meals/MealImage";
+import { PlusIcon, EditIcon, TrashIcon } from "lucide-react";
+import { format, addDays, startOfWeek } from "date-fns";
 import { cn } from "@/lib/utils";
 import {
   Tooltip,
@@ -14,6 +13,23 @@ import {
   TooltipProvider,
   TooltipTrigger,
 } from "@/components/ui/tooltip";
+import { PlanEntry, fridgeService } from "@/lib/api-services";
+import { calculateFridgePercentage } from "@/lib/meal";
+import { Badge } from "@/components/ui/badge";
+
+// Define the days of the week
+const days = [
+  "monday",
+  "tuesday",
+  "wednesday",
+  "thursday",
+  "friday",
+  "saturday",
+  "sunday",
+];
+
+// Define meal types
+const mealTypes = ["breakfast", "lunch", "dinner", "snack"];
 
 interface PlanCalendarProps {
   entries: PlanEntry[];
@@ -28,68 +44,47 @@ export function PlanCalendar({
   onEditEntry,
   onDeleteEntry,
 }: PlanCalendarProps) {
-  const days = [
-    "monday",
-    "tuesday",
-    "wednesday",
-    "thursday",
-    "friday",
-    "saturday",
-    "sunday",
-  ];
+  // Track the current week dates - initialize with default values
+  const [weekDates, setWeekDates] = useState<Record<string, Date>>(() =>
+    getCurrentWeekDates()
+  );
 
-  const mealTypes = ["breakfast", "lunch", "dinner", "snack"];
+  // Update week dates on component mount - redundant now but keeping for safety
+  useEffect(() => {
+    setWeekDates(getCurrentWeekDates());
+  }, []);
 
-  // Get the current week's start date (Monday)
+  // Get the current week's dates
   const getCurrentWeekDates = () => {
-    // Start with current date and find the most recent Monday
-    const now = new Date();
-    const day = now.getDay(); // 0 = Sunday, 1 = Monday, etc.
+    // Start with Monday as the first day of the week
+    const monday = startOfWeek(new Date(), { weekStartsOn: 1 });
 
-    // Calculate days to subtract to get to Monday (if today is Sunday, subtract 6 days)
-    const daysToSubtract = day === 0 ? 6 : day - 1;
-
-    // Get Monday by subtracting the appropriate number of days
-    const monday = new Date(now);
-    monday.setDate(now.getDate() - daysToSubtract);
-
-    // Reset to midnight
-    monday.setHours(0, 0, 0, 0);
-
-    // Create mapping of day names to actual dates for this week
+    // Create a record with each day of the week and its date
     return days.reduce((acc, day, index) => {
-      const date = new Date(monday);
-      date.setDate(monday.getDate() + index);
-      acc[day] = date;
+      acc[day] = addDays(monday, index);
       return acc;
     }, {} as Record<string, Date>);
   };
 
-  const weekDates = getCurrentWeekDates();
-
-  // Helper function to get day of week from date
+  // Format a date string to get day of week (lowercase)
   const getDayOfWeek = (dateStr: string): string => {
-    if (!dateStr) return "";
-    const date = new Date(dateStr);
-
-    // JavaScript getDay() returns 0 for Sunday, 1 for Monday, etc.
-    // but our grid starts with Monday, so we need to map them correctly
-    const dayIndex = date.getDay(); // 0 = Sunday, 1 = Monday, etc.
-
-    // Convert JavaScript day index to our days array index
-    // Sunday (0) -> index 6
-    // Monday (1) -> index 0
-    // Tuesday (2) -> index 1
-    // etc.
-    const mappedIndex = dayIndex === 0 ? 6 : dayIndex - 1;
-
-    return days[mappedIndex];
+    try {
+      const date = new Date(dateStr);
+      // Use toLocaleLowerCase to ensure consistency with our day keys
+      return format(date, "EEEE").toLowerCase();
+    } catch (error) {
+      console.error("Invalid date string:", dateStr);
+      return "monday"; // Default to Monday if there's an error
+    }
   };
 
-  // Modified handleAddEntry to pass the actual date for the selected day
+  // Handle clicking on an empty day slot
   const handleDayClick = (day: string, mealType: string) => {
-    const dateForDay = weekDates[day];
-    const formattedDate = format(dateForDay, "yyyy-MM-dd");
+    // Check if weekDates[day] exists before formatting the date
+    if (!weekDates[day]) return;
+
+    // Format the date for the API (YYYY-MM-DD)
+    const formattedDate = format(weekDates[day], "yyyy-MM-dd");
     onAddEntry(formattedDate, mealType);
   };
 
@@ -115,7 +110,7 @@ export function PlanCalendar({
           >
             {day}
             <div className="text-xs text-neutral-500">
-              {format(weekDates[day], "MMM d")}
+              {weekDates[day] ? format(weekDates[day], "MMM d") : ""}
             </div>
           </div>
         ))}
@@ -135,7 +130,7 @@ export function PlanCalendar({
                   <div className="md:hidden font-semibold text-neutral-700 capitalize mb-2">
                     {day}
                     <span className="text-xs text-neutral-500 ml-2">
-                      {format(weekDates[day], "MMM d")}
+                      {weekDates[day] ? format(weekDates[day], "MMM d") : ""}
                     </span>
                   </div>
 
@@ -181,6 +176,44 @@ interface MealCardProps {
 function MealCard({ entry, onEdit, onDelete }: MealCardProps) {
   const [isHovered, setIsHovered] = useState(false);
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
+  const [fridgePercentage, setFridgePercentage] = useState<number | undefined>(
+    undefined
+  );
+
+  useEffect(() => {
+    // Fetch fridge items and calculate percentage
+    async function calculatePercentage() {
+      try {
+        // Only proceed if the entry has a meal and the meal has an ID
+        if (!entry.meal?.id) return;
+
+        // Fetch meal details to get ingredients
+        const mealResponse = await fetch(`/api/meals/${entry.meal.id}`);
+        if (!mealResponse.ok) {
+          throw new Error("Failed to fetch meal details");
+        }
+
+        const mealData = await mealResponse.json();
+
+        // Only calculate if meal has ingredients
+        if (mealData.ingredients && mealData.ingredients.length > 0) {
+          // Get fridge items
+          const fridgeItems = await fridgeService.getAllItems();
+
+          // Calculate percentage
+          const percentage = calculateFridgePercentage(
+            mealData.ingredients,
+            fridgeItems
+          );
+          setFridgePercentage(percentage);
+        }
+      } catch (error) {
+        console.error("Error calculating fridge percentage:", error);
+      }
+    }
+
+    calculatePercentage();
+  }, [entry.meal?.id]);
 
   const handleDeleteClick = () => {
     setShowDeleteConfirm(true);
@@ -188,6 +221,13 @@ function MealCard({ entry, onEdit, onDelete }: MealCardProps) {
 
   const handleCancelDelete = () => {
     setShowDeleteConfirm(false);
+  };
+
+  // Get badge variant based on fridge percentage
+  const getBadgeVariant = (percentage: number) => {
+    if (percentage >= 100) return "success";
+    if (percentage >= 50) return "secondary";
+    return "default";
   };
 
   return (
@@ -204,13 +244,25 @@ function MealCard({ entry, onEdit, onDelete }: MealCardProps) {
       >
         <div className="p-0 flex flex-col h-full">
           {/* Image container with fixed aspect ratio */}
-          <div className="w-full aspect-video overflow-hidden">
+          <div className="w-full aspect-video overflow-hidden relative">
             <MealImage
               imageUrl={entry.meal?.image_url}
               name={entry.meal?.name || "Unnamed meal"}
               status={entry.meal?.image_status || "completed"}
               className="w-full h-full"
             />
+
+            {/* Fridge percentage badge */}
+            {typeof fridgePercentage === "number" && (
+              <div className="absolute top-2 right-2">
+                <Badge
+                  variant={getBadgeVariant(fridgePercentage)}
+                  className="text-xs font-medium"
+                >
+                  {fridgePercentage}% in fridge
+                </Badge>
+              </div>
+            )}
           </div>
           <div className="bg-white p-2 flex-grow">
             <h3 className="text-sm font-medium text-center truncate">

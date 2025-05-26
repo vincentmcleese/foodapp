@@ -10,7 +10,11 @@ import {
 } from "@/components/features/fridge/FridgeItemForm";
 import { Button } from "@/components/ui/button";
 import { PlusIcon } from "lucide-react";
-import { Ingredient, ingredientService } from "@/lib/api-services";
+import {
+  Ingredient,
+  ingredientService,
+  fridgeService,
+} from "@/lib/api-services";
 import { useToast } from "@/components/ui/use-toast";
 import {
   Dialog,
@@ -129,35 +133,33 @@ export default function FridgePage() {
   // Handle delete ingredient
   const handleDeleteIngredient = async (id: string) => {
     try {
-      // Actually call the API to delete the ingredient
-      await ingredientService.deleteIngredient(id);
+      // Find the fridge item associated with this ingredient
+      const fridgeItem = fridgeItems.find((item) => item.ingredient_id === id);
+
+      if (!fridgeItem) {
+        throw new Error("Fridge item not found for this ingredient");
+      }
+
+      // Delete the fridge item instead of the ingredient
+      await fridgeService.deleteItem(fridgeItem.id);
 
       // Update local state after successful API call
+      setFridgeItems(fridgeItems.filter((item) => item.ingredient_id !== id));
       setIngredients(ingredients.filter((ing) => ing.id !== id));
 
       toast({
         title: "Success",
-        description: "Ingredient removed from fridge",
+        description: "Item removed from fridge",
       });
 
       // Refresh the data
       handleItemAdded();
     } catch (error: any) {
-      // Check if this is an expected error (like ingredient used in meals)
-      const isExpectedError = error.expected === true;
-      const errorMessage = error.message || "Failed to delete ingredient";
-      const isUsedInMeals = errorMessage.includes("used in meals");
-
-      // Only log unexpected errors to console
-      if (!isExpectedError) {
-        console.error("Error deleting ingredient:", error);
-      }
+      console.error("Error deleting fridge item:", error);
 
       toast({
-        title: isUsedInMeals ? "Cannot Delete" : "Error",
-        description: isUsedInMeals
-          ? "This ingredient is used in one or more meals. Remove it from those meals first."
-          : "Failed to delete ingredient",
+        title: "Error",
+        description: "Failed to remove item from fridge",
         variant: "destructive",
       });
     }

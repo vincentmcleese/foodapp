@@ -1,4 +1,4 @@
-import { MealIngredient } from "./api-services";
+import { MealIngredient, FridgeItem } from "./api-services";
 
 /**
  * Calculate nutrition totals from a list of meal ingredients
@@ -47,6 +47,39 @@ export function calculateNutrition(ingredients: MealIngredient[]) {
 }
 
 /**
+ * Calculate percentage of meal ingredients available in fridge
+ * @param mealIngredients List of meal ingredients
+ * @param fridgeItems List of fridge items
+ * @returns Percentage of ingredients available (0-100)
+ */
+export function calculateFridgePercentage(
+  mealIngredients: MealIngredient[],
+  fridgeItems: FridgeItem[]
+): number {
+  if (!mealIngredients?.length) return 0;
+
+  // Create a map of fridge items by ingredient ID
+  const fridgeMap = new Map(
+    fridgeItems.map((item) => [item.ingredient_id, item])
+  );
+
+  // Count ingredients available in fridge
+  const availableCount = mealIngredients.filter((mi) => {
+    const fridgeItem = fridgeMap.get(mi.ingredient_id);
+
+    // For pantry items, check if in stock
+    if (mi.ingredient?.ingredient_type === "pantry") {
+      return fridgeItem?.status === "IN_STOCK";
+    }
+
+    // For regular ingredients, check if available and has sufficient quantity
+    return fridgeItem && (fridgeItem.quantity || 0) >= mi.quantity;
+  }).length;
+
+  return Math.round((availableCount / mealIngredients.length) * 100);
+}
+
+/**
  * Format a nutrition value with appropriate units
  * @param value The nutrition value to format
  * @param unit The unit for the value (g, mg, etc.)
@@ -73,19 +106,21 @@ export function calculateTotalTime(
 }
 
 /**
- * Format time duration in minutes to a human-readable string
+ * Format time into a human-readable format (e.g., "1h 20m")
  * @param minutes Time in minutes
- * @returns Formatted time string (e.g., "1h 30m" or "25m")
+ * @returns Formatted time string
  */
-export function formatTime(minutes?: number): string {
-  if (!minutes) return "0m";
-
-  const hours = Math.floor(minutes / 60);
-  const mins = minutes % 60;
-
-  if (hours > 0) {
-    return `${hours}h${mins > 0 ? ` ${mins}m` : ""}`;
+export function formatTime(minutes: number): string {
+  if (minutes < 60) {
+    return `${minutes}m`;
   }
 
-  return `${mins}m`;
+  const hours = Math.floor(minutes / 60);
+  const remainingMinutes = minutes % 60;
+
+  if (remainingMinutes === 0) {
+    return `${hours}h`;
+  }
+
+  return `${hours}h ${remainingMinutes}m`;
 }
