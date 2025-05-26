@@ -16,6 +16,7 @@ import {
 import { PlanEntry, fridgeService } from "@/lib/api-services";
 import { calculateFridgePercentage } from "@/lib/meal";
 import { Badge } from "@/components/ui/badge";
+import { MealSelectorModal } from "./MealSelectorModal";
 
 // Define the days of the week
 const days = [
@@ -44,6 +45,11 @@ export function PlanCalendar({
   onEditEntry,
   onDeleteEntry,
 }: PlanCalendarProps) {
+  // State for MealSelectorModal
+  const [isMealSelectorOpen, setIsMealSelectorOpen] = useState(false);
+  const [selectedDay, setSelectedDay] = useState<string>("");
+  const [selectedMealType, setSelectedMealType] = useState<string>("");
+
   // Get the current week's dates - define this function before using it
   const getCurrentWeekDates = () => {
     // Start with Monday as the first day of the week
@@ -85,7 +91,52 @@ export function PlanCalendar({
 
     // Format the date for the API (YYYY-MM-DD)
     const formattedDate = format(weekDates[day], "yyyy-MM-dd");
-    onAddEntry(formattedDate, mealType);
+
+    // Save the selected day and meal type
+    setSelectedDay(formattedDate);
+    setSelectedMealType(mealType);
+
+    // Open the meal selector modal
+    setIsMealSelectorOpen(true);
+  };
+
+  // Handle meal selection from the modal
+  const handleSelectMeal = (mealId: string) => {
+    // Call the onAddEntry with the saved day, meal type, and selected meal ID
+    if (selectedDay && selectedMealType) {
+      // Create a plan entry with the selected meal
+      createPlanEntry(selectedDay, selectedMealType, mealId);
+    }
+  };
+
+  // Create a plan entry with the selected meal
+  const createPlanEntry = async (
+    date: string,
+    mealType: string,
+    mealId: string
+  ) => {
+    try {
+      const response = await fetch("/api/plan", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          meal_id: mealId,
+          date: date,
+          meal_type: mealType,
+        }),
+      });
+
+      if (!response.ok) {
+        throw new Error("Failed to create plan entry");
+      }
+
+      // Refresh the entries after successful creation
+      onAddEntry(date, mealType);
+    } catch (error) {
+      console.error("Error creating plan entry:", error);
+    }
   };
 
   // Group entries by day and meal type
@@ -163,6 +214,13 @@ export function PlanCalendar({
           </div>
         ))}
       </div>
+
+      {/* Meal Selector Modal */}
+      <MealSelectorModal
+        open={isMealSelectorOpen}
+        onOpenChange={setIsMealSelectorOpen}
+        onSelectMeal={handleSelectMeal}
+      />
     </div>
   );
 }

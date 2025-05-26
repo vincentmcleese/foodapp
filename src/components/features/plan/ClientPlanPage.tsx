@@ -36,8 +36,9 @@ export function ClientPlanPage({ initialEntries }: ClientPlanPageProps) {
     refreshEntries();
   }, []);
 
+  // This is now only used for refreshing the entries after add/edit/delete
   const handleAddEntry = (date: string, mealType: string) => {
-    router.push(`/plan/new?date=${date}&type=${mealType}`);
+    refreshEntries();
   };
 
   const handleEditEntry = (entry: PlanEntry) => {
