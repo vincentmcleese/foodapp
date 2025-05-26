@@ -680,7 +680,9 @@ sprint 13 make the cards on the plan page int he grid jsut show a thumbnail of t
 
 sprint 14 lets add a badge onto the mealcards that shows a "% in fridge" calculation. We want to quickly see which meals we have all the ingredients for. We should be able to see it while browsing the meals on plan. Furthermore, lets create a better "add to plan" modal where we actually see mealcards, similar to the meals page. we'd like to see a grid of meals. and then you select one to add to the given day/meal.
 
-sprint 15 I would like to ensure when we add new meals created by the 'discvoer new meals' feature we also save into the meals database the 'health principles' we used. so the ones that were active in the search for creating those meals should be saved into the database. this way we can filter on those in the future. Furthermore we need to add a "meal filter" component that we can use to filter mealcards. Lets begin wi
+sprint 15 I would like to ensure when we add new meals created by the 'discvoer new meals' feature we also save into the meals database the 'health principles' we used. so the ones that were active in the search for creating those meals should be saved into the database. this way we can filter on those in the future. Furthermore we need to add a "meal filter" component that we can use to filter mealcards. Lets begin with a filter for selecting the health based principles that were used to create that meal and a sort to show the meals with the most fridge items. but in the future we may add more so create a nice component that we can modify in the future. We will likely use this filter for both the meals page and the select meal in the plan modal.
+
+sprint 16 As a user I would like to also be able to cycle through past weeks, so you shoul dbe able to move forward and backwwards (week by week)
 
 
 ⸻

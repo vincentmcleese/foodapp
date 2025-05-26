@@ -6,60 +6,53 @@ import {
   MealRecommendation,
   mealService,
   RecommendationRequest,
+  HealthPrinciple,
 } from "@/lib/api-services";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
 import { Slider } from "@/components/ui/slider";
-import { Toaster } from "@/components/ui/toaster";
+import { Toaster, toast } from "sonner";
 
 interface MealRecommendationListProps {
   initialRecommendations: MealRecommendation[];
+  activeHealthPrinciples?: HealthPrinciple[];
 }
 
 export function MealRecommendationList({
   initialRecommendations,
+  activeHealthPrinciples = [],
 }: MealRecommendationListProps) {
   console.log(
-    "MealRecommendationList rendered with initial recommendations:",
-    initialRecommendations?.length || 0
+    "MealRecommendationList rendered with",
+    initialRecommendations.length,
+    "recommendations"
   );
 
   const [recommendations, setRecommendations] = useState<MealRecommendation[]>(
-    initialRecommendations
+    initialRecommendations || []
   );
-  const [filteredRecommendations, setFilteredRecommendations] = useState<
-    MealRecommendation[]
-  >(initialRecommendations);
-  const [isLoading, setIsLoading] = useState(false);
+  const [cuisineFilter, setCuisineFilter] = useState("");
+  const [maxPrepTime, setMaxPrepTime] = useState(60);
   const [page, setPage] = useState(1);
   const [hasMore, setHasMore] = useState(true);
+  const [isLoading, setIsLoading] = useState(false);
   const [loadError, setLoadError] = useState<string | null>(null);
+  const [savingMealIds, setSavingMealIds] = useState<Set<string>>(new Set());
 
-  // Filters
-  const [cuisineFilter, setCuisineFilter] = useState("");
-  const [maxPrepTime, setMaxPrepTime] = useState<number>(60);
-
-  // Apply filters when they change
-  useEffect(() => {
-    console.log("Applying filters:", { cuisineFilter, maxPrepTime });
-    let filtered = recommendations;
-
-    if (cuisineFilter) {
-      filtered = filtered.filter((meal) =>
-        meal.cuisine.toLowerCase().includes(cuisineFilter.toLowerCase())
-      );
+  // Filter recommendations based on user selections
+  const filteredRecommendations = recommendations.filter((meal) => {
+    if (
+      cuisineFilter &&
+      !meal.cuisine.toLowerCase().includes(cuisineFilter.toLowerCase())
+    ) {
+      return false;
     }
-
-    if (maxPrepTime < 60) {
-      filtered = filtered.filter(
-        (meal) => meal.prepTime + meal.cookTime <= maxPrepTime
-      );
+    if (maxPrepTime < 60 && meal.prepTime > maxPrepTime) {
+      return false;
     }
-
-    console.log("Filtered recommendations:", filtered.length);
-    setFilteredRecommendations(filtered);
-  }, [recommendations, cuisineFilter, maxPrepTime]);
+    return true;
+  });
 
   const loadMore = async () => {
     try {
@@ -99,12 +92,39 @@ export function MealRecommendationList({
   };
 
   const handleSaveMeal = async (meal: MealRecommendation) => {
-    console.log("Saving meal:", meal.name);
+    if (!meal.id) {
+      console.error("Cannot save meal without ID");
+      return;
+    }
+
     try {
-      await mealService.saveMeal(meal);
+      // Mark this meal as saving
+      setSavingMealIds((prev) => new Set(prev).add(meal.id!));
+
+      console.log("Saving meal:", meal.name);
+
+      // Extract health principle IDs from active principles
+      const healthPrincipleIds = activeHealthPrinciples
+        .filter((principle) => principle.enabled)
+        .map((principle) => principle.id);
+
+      console.log("Using health principles:", healthPrincipleIds);
+
+      // Save the meal with health principles
+      await mealService.saveMeal(meal, healthPrincipleIds);
+
       console.log("Meal saved successfully");
+      toast.success(`${meal.name} saved to your meals`);
     } catch (error) {
       console.error("Error saving meal:", error);
+      toast.error(`Failed to save ${meal.name}`);
+    } finally {
+      // Remove this meal from saving state
+      setSavingMealIds((prev) => {
+        const newSet = new Set(prev);
+        newSet.delete(meal.id!);
+        return newSet;
+      });
     }
   };
 
@@ -163,45 +183,27 @@ export function MealRecommendationList({
             key={meal.id}
             meal={meal}
             onSave={handleSaveMeal}
+            isSaving={meal.id ? savingMealIds.has(meal.id) : false}
           />
         ))}
       </div>
 
       {/* Load more button */}
-      {filteredRecommendations.length > 0 && hasMore && (
+      {hasMore && (
         <div className="mt-8 text-center">
-          <Button
-            onClick={loadMore}
-            disabled={isLoading}
-            variant="outline"
-            className="px-6 py-2"
-          >
+          <Button onClick={loadMore} disabled={isLoading} className="px-6 py-2">
             {isLoading ? "Loading..." : "Load More"}
           </Button>
-          {loadError && (
-            <p className="text-red-500 mt-2 text-sm">{loadError}</p>
-          )}
         </div>
       )}
 
-      {/* No results */}
-      {filteredRecommendations.length === 0 && (
-        <div className="text-center py-12">
-          <p className="text-gray-500 mb-4">
-            No meals match your current filters.
-          </p>
-          <Button
-            onClick={() => {
-              setCuisineFilter("");
-              setMaxPrepTime(60);
-            }}
-          >
-            Clear Filters
-          </Button>
+      {/* Error message */}
+      {loadError && (
+        <div className="mt-4 p-4 bg-red-50 text-red-700 rounded-md">
+          {loadError}
         </div>
       )}
 
-      {/* Toaster for notifications */}
       <Toaster />
     </div>
   );

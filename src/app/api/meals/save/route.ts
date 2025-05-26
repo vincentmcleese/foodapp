@@ -17,6 +17,7 @@ interface MealData {
   cuisine?: string;
   nutrition?: Record<string, number>;
   ingredients?: MealIngredient[];
+  healthPrincipleIds?: string[];
 }
 
 export async function POST(request: Request) {
@@ -31,19 +32,26 @@ export async function POST(request: Request) {
     // Extract ingredients from the meal data
     const ingredients = mealData.ingredients || [];
 
-    // Prepare meal data for insertion (without ingredients)
-    const { ingredients: _, ...mealDataWithoutIngredients } = mealData;
+    // Extract health principle IDs
+    const healthPrincipleIds = mealData.healthPrincipleIds || [];
+
+    // Prepare meal data for insertion (without ingredients and health principles)
+    const {
+      ingredients: _,
+      healthPrincipleIds: __,
+      ...mealDataWithoutRelations
+    } = mealData;
 
     // Add AI generated flag
     const mealToInsert = {
-      name: mealDataWithoutIngredients.name,
-      description: mealDataWithoutIngredients.description,
-      instructions: mealDataWithoutIngredients.instructions,
-      prep_time: mealDataWithoutIngredients.prepTime,
-      cook_time: mealDataWithoutIngredients.cookTime,
-      servings: mealDataWithoutIngredients.servings,
-      cuisine: mealDataWithoutIngredients.cuisine,
-      nutrition: mealDataWithoutIngredients.nutrition,
+      name: mealDataWithoutRelations.name,
+      description: mealDataWithoutRelations.description,
+      instructions: mealDataWithoutRelations.instructions,
+      prep_time: mealDataWithoutRelations.prepTime,
+      cook_time: mealDataWithoutRelations.cookTime,
+      servings: mealDataWithoutRelations.servings,
+      cuisine: mealDataWithoutRelations.cuisine,
+      nutrition: mealDataWithoutRelations.nutrition,
       source: "ai",
       ai_generated: true,
     };
@@ -156,7 +164,7 @@ export async function POST(request: Request) {
         }
 
         // Add newly created ingredients to the map and track them for image generation
-        const newIngredientsToProcess = [];
+        const newIngredientsToProcess: Array<{ id: string; name: string }> = [];
         for (const ing of newIngredients || []) {
           existingIngredientMap.set(ing.name.toLowerCase(), ing.id);
           newIngredientsToProcess.push({
@@ -165,14 +173,10 @@ export async function POST(request: Request) {
           });
         }
 
-        // Queue image generation with delay to avoid rate limits
-        // Process each ingredient one at a time with delays between requests
-        (async () => {
-          for (const ing of newIngredientsToProcess) {
-            try {
-              // Add a 2-second delay between each request to avoid rate limits
-              await new Promise((resolve) => setTimeout(resolve, 2000));
-
+        // Request image generation for new ingredients (non-blocking)
+        setTimeout(async () => {
+          try {
+            for (const ing of newIngredientsToProcess) {
               const fullUrl = new URL(
                 "/api/ingredients/generate-image",
                 request.url
@@ -181,42 +185,82 @@ export async function POST(request: Request) {
               await fetch(fullUrl, {
                 method: "POST",
                 headers: { "Content-Type": "application/json" },
-                body: JSON.stringify({ ingredientId: ing.id, name: ing.name }),
+                body: JSON.stringify({
+                  ingredientId: ing.id,
+                  name: ing.name,
+                }),
               });
 
               console.log(
                 `Image generation requested for ingredient: ${ing.name}`
               );
-            } catch (error) {
-              console.error(
-                `Error requesting image generation for ${ing.name}:`,
-                error
-              );
             }
+          } catch (error) {
+            console.error(
+              "Error requesting ingredient image generation:",
+              error
+            );
+            // Non-blocking - we continue with the response
           }
-        })().catch((error) => {
-          console.error("Error in sequential image generation:", error);
-        });
+        }, 100);
       }
 
-      // Create meal_ingredient entries
-      const mealIngredients = ingredients.map((ing: MealIngredient) => ({
-        meal_id: insertedMeal.id,
-        ingredient_id: existingIngredientMap.get(ing.name.toLowerCase()),
-        quantity: ing.quantity,
-        unit: ing.unit,
-      }));
+      // Create meal_ingredient relationships
+      const mealIngredients = ingredients
+        .map((ing: MealIngredient) => {
+          const ingredientId = existingIngredientMap.get(
+            ing.name.toLowerCase()
+          );
+          if (!ingredientId) {
+            console.error(`Ingredient ID not found for: ${ing.name}`);
+            return null;
+          }
 
-      const { error: mealIngredientError } = await supabaseAdmin
-        .from("meal_ingredient")
-        .insert(mealIngredients);
+          return {
+            meal_id: insertedMeal.id,
+            ingredient_id: ingredientId,
+            quantity: ing.quantity,
+            unit: ing.unit,
+          };
+        })
+        .filter(Boolean); // Remove any null entries
 
-      if (mealIngredientError) {
-        console.error("Error inserting meal ingredients:", mealIngredientError);
-        return NextResponse.json(
-          { error: "Failed to save meal ingredients" },
-          { status: 500 }
+      if (mealIngredients.length > 0) {
+        const { error: relError } = await supabaseAdmin
+          .from("meal_ingredient")
+          .insert(mealIngredients);
+
+        if (relError) {
+          console.error("Error creating meal_ingredient relations:", relError);
+          return NextResponse.json(
+            { error: "Failed to link ingredients to meal" },
+            { status: 500 }
+          );
+        }
+      }
+    }
+
+    // Process health principles if they exist
+    if (healthPrincipleIds.length > 0) {
+      // Create meal_health_principle relationships
+      const mealHealthPrinciples = healthPrincipleIds.map(
+        (principleId: string) => ({
+          meal_id: insertedMeal.id,
+          health_principle_id: principleId,
+        })
+      );
+
+      const { error: healthPrincipleError } = await supabaseAdmin
+        .from("meal_health_principle")
+        .insert(mealHealthPrinciples);
+
+      if (healthPrincipleError) {
+        console.error(
+          "Error creating meal_health_principle relations:",
+          healthPrincipleError
         );
+        // We don't return an error here because the meal was already created successfully
+        // Just log the error and continue
       }
     }
 

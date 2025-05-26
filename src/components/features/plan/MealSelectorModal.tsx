@@ -8,13 +8,11 @@ import {
   DialogTitle,
   DialogDescription,
 } from "@/components/ui/dialog";
-import { Input } from "@/components/ui/input";
-import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
-import { Search } from "lucide-react";
 import { MealCard } from "@/components/features/meals/MealCard";
-import { Meal, fridgeService } from "@/lib/api-services";
-import { calculateFridgePercentage } from "@/lib/meal";
+import { Meal, fridgeService, RecommendationRequest } from "@/lib/api-services";
+import { calculateFridgePercentage, applyMealFilters } from "@/lib/meal";
+import { MealFilter } from "@/components/features/meals/MealFilter";
 
 interface MealSelectorModalProps {
   open: boolean;
@@ -28,10 +26,9 @@ export function MealSelectorModal({
   onSelectMeal,
 }: MealSelectorModalProps) {
   const [meals, setMeals] = useState<Meal[]>([]);
-  const [filteredMeals, setFilteredMeals] = useState<Meal[]>([]);
-  const [searchQuery, setSearchQuery] = useState("");
   const [isLoading, setIsLoading] = useState(true);
   const [fridgeItems, setFridgeItems] = useState<any[]>([]);
+  const [filters, setFilters] = useState<RecommendationRequest>({});
 
   useEffect(() => {
     async function fetchData() {
@@ -49,7 +46,6 @@ export function MealSelectorModal({
 
         const mealsData = await mealsResponse.json();
         setMeals(mealsData);
-        setFilteredMeals(mealsData);
         setFridgeItems(fridgeItemsResponse);
       } catch (error) {
         console.error("Error fetching data:", error);
@@ -63,37 +59,12 @@ export function MealSelectorModal({
     }
   }, [open]);
 
-  useEffect(() => {
-    // Filter meals based on search query
-    if (searchQuery.trim() === "") {
-      setFilteredMeals(meals);
-    } else {
-      const query = searchQuery.toLowerCase();
-      const filtered = meals.filter(
-        (meal) =>
-          meal.name.toLowerCase().includes(query) ||
-          (meal.description && meal.description.toLowerCase().includes(query))
-      );
-      setFilteredMeals(filtered);
-    }
-  }, [searchQuery, meals]);
-
-  const handleSearch = (e: React.ChangeEvent<HTMLInputElement>) => {
-    setSearchQuery(e.target.value);
-  };
+  // Apply filters to meals
+  const filteredMeals = applyMealFilters(meals, filters, fridgeItems);
 
   const handleMealClick = (mealId: string) => {
     onSelectMeal(mealId);
     onOpenChange(false);
-  };
-
-  // Calculate fridge percentage for a meal
-  const getFridgePercentage = (meal: Meal) => {
-    if (!meal.ingredients || !meal.ingredients.length || !fridgeItems.length) {
-      return undefined;
-    }
-
-    return calculateFridgePercentage(meal.ingredients, fridgeItems);
   };
 
   return (
@@ -106,18 +77,7 @@ export function MealSelectorModal({
           </DialogDescription>
         </DialogHeader>
 
-        <div className="relative my-4">
-          <Search
-            className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400"
-            size={18}
-          />
-          <Input
-            placeholder="Search meals..."
-            value={searchQuery}
-            onChange={handleSearch}
-            className="pl-10"
-          />
-        </div>
+        <MealFilter onFilterChange={setFilters} className="mt-4" />
 
         {isLoading ? (
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
@@ -128,19 +88,36 @@ export function MealSelectorModal({
         ) : filteredMeals.length === 0 ? (
           <div className="text-center py-8">
             <p className="text-gray-500">
-              No meals found matching your search.
+              No meals found matching your criteria.
             </p>
           </div>
         ) : (
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 mt-4">
             {filteredMeals.map((meal) => (
               <MealCard
                 key={meal.id}
-                meal={meal}
+                meal={{
+                  id: meal.id,
+                  name: meal.name,
+                  description: meal.description,
+                  calories: meal.nutrition?.calories,
+                  protein: meal.nutrition?.protein,
+                  carbs: meal.nutrition?.carbs,
+                  fat: meal.nutrition?.fat,
+                  image_url: meal.image_url,
+                  image_status: meal.image_status,
+                }}
                 onClick={handleMealClick}
                 showActions={false}
                 showRating={true}
-                fridgePercentage={getFridgePercentage(meal)}
+                fridgePercentage={
+                  meal.meal_ingredient?.length
+                    ? calculateFridgePercentage(
+                        meal.meal_ingredient,
+                        fridgeItems
+                      )
+                    : undefined
+                }
               />
             ))}
           </div>

@@ -7,6 +7,7 @@ import { generateMealRecommendations } from "@/lib/ai-service";
 import { Skeleton } from "@/components/ui/skeleton";
 import { PageLayout } from "@/components/common/PageLayout";
 import { Spinner } from "@/components/ui/spinner";
+import { HealthPrinciple } from "@/lib/api-services";
 
 // Enhanced loading component
 function RecommendationsLoading() {
@@ -60,12 +61,25 @@ export default function DiscoverPage() {
   const [recommendations, setRecommendations] = useState([]);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [activeHealthPrinciples, setActiveHealthPrinciples] = useState<
+    HealthPrinciple[]
+  >([]);
 
   useEffect(() => {
     async function fetchRecommendations() {
       try {
         console.log("Starting to fetch data for recommendations");
         setIsLoading(true);
+
+        // First, fetch active health principles
+        const healthResponse = await fetch("/api/health/principles");
+        if (healthResponse.ok) {
+          const healthData = await healthResponse.json();
+          const activePrinciples = healthData.filter(
+            (principle: HealthPrinciple) => principle.enabled
+          );
+          setActiveHealthPrinciples(activePrinciples);
+        }
 
         // Fetch data for recommendations via API endpoint
         const response = await fetch("/api/meals/recommendations");
@@ -113,5 +127,10 @@ export default function DiscoverPage() {
     );
   }
 
-  return <MealRecommendationList initialRecommendations={recommendations} />;
+  return (
+    <MealRecommendationList
+      initialRecommendations={recommendations}
+      activeHealthPrinciples={activeHealthPrinciples}
+    />
+  );
 }

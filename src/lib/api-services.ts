@@ -48,7 +48,19 @@ export interface Meal {
   image_status?: "pending" | "generating" | "completed" | "failed";
   created_at?: string;
   updated_at?: string;
+  source?: string;
+  ai_generated?: boolean;
+  prepTime?: number;
+  cookTime?: number;
+  cuisine?: string;
   ingredients?: MealIngredient[];
+  meal_ingredient?: MealIngredient[];
+  healthPrinciples?: Array<{
+    id: string;
+    name: string;
+    description?: string;
+    enabled?: boolean;
+  }>;
   nutrition?: {
     calories: number;
     protein: number;
@@ -139,6 +151,7 @@ export interface MealRecommendation {
     carbs: number;
     fat: number;
   };
+  healthPrincipleIds?: string[]; // Add this field for health principles
 }
 
 export interface RecommendationRequest {
@@ -146,6 +159,8 @@ export interface RecommendationRequest {
   pageSize?: number;
   cuisine?: string;
   maxPrepTime?: number;
+  healthPrinciples?: string[]; // Add this field for filtering by health principles
+  sortBy?: "fridgePercentage" | "name" | "created";
 }
 
 // Fridge Item API Service
@@ -576,15 +591,21 @@ export const mealService = {
   },
 
   async saveMeal(
-    meal: MealRecommendation
+    meal: MealRecommendation,
+    healthPrincipleIds?: string[]
   ): Promise<{ success: boolean; mealId: string }> {
     try {
+      const mealWithHealthPrinciples = {
+        ...meal,
+        healthPrincipleIds: healthPrincipleIds || [],
+      };
+
       const response = await fetch(`/api/meals/save`, {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
         },
-        body: JSON.stringify(meal),
+        body: JSON.stringify(mealWithHealthPrinciples),
       });
 
       const data = await response.json();

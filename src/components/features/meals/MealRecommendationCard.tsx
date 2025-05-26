@@ -12,48 +12,61 @@ import {
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import {
-  SaveIcon,
-  ClockIcon,
-  UsersIcon,
-  ChevronDownIcon,
-  ChevronUpIcon,
+  Save,
+  Clock as ClockIcon,
+  Users as UsersIcon,
+  ChevronDown,
+  ChevronUp,
+  Loader2,
 } from "lucide-react";
 import { MealRecommendation } from "@/lib/api-services";
-import { useToast } from "@/hooks/use-toast";
 import { MealImage } from "./MealImage";
+import { cn } from "@/lib/utils";
 
 interface MealRecommendationCardProps {
   meal: MealRecommendation;
-  onSave: (meal: MealRecommendation) => Promise<void>;
+  onSave: (meal: MealRecommendation) => void;
+  isSaving?: boolean;
 }
 
 export function MealRecommendationCard({
   meal,
   onSave,
+  isSaving = false,
 }: MealRecommendationCardProps) {
   const [expanded, setExpanded] = useState(false);
-  const [saving, setSaving] = useState(false);
-  const { toast } = useToast();
 
-  const handleSave = async () => {
-    try {
-      setSaving(true);
-      await onSave(meal);
-      toast({
-        title: "Meal saved successfully!",
-        description: `${meal.name} has been added to your meals.`,
-        variant: "default",
-      });
-    } catch (error) {
-      toast({
-        title: "Failed to save meal",
-        description: "Please try again later.",
-        variant: "destructive",
-      });
-    } finally {
-      setSaving(false);
+  const handleSave = () => {
+    if (!isSaving) {
+      onSave(meal);
     }
   };
+
+  // Format nutrition values
+  const nutrition = meal.nutrition || {
+    calories: 0,
+    protein: 0,
+    carbs: 0,
+    fat: 0,
+  };
+
+  // Create a nutrition summary component
+  const NutritionItem = ({
+    label,
+    value,
+    unit,
+  }: {
+    label: string;
+    value: number;
+    unit: string;
+  }) => (
+    <div className="text-center">
+      <div className="font-medium text-lg">{value}</div>
+      <div className="text-xs text-gray-500">
+        {label} ({unit})
+      </div>
+    </div>
+  );
 
   return (
     <Card className="w-full h-full flex flex-col overflow-hidden transition-all duration-200 hover:shadow-lg border-2 border-transparent hover:border-indigo-100">
@@ -97,19 +110,27 @@ export function MealRecommendationCard({
 
         <div className="mb-3">
           <h4 className="text-sm font-medium mb-1">Nutrition</h4>
-          <div className="flex space-x-2 text-xs">
-            <Badge variant="secondary" className="bg-gray-100 text-gray-700">
-              {meal.nutrition.calories} kcal
-            </Badge>
-            <Badge variant="secondary" className="bg-gray-100 text-gray-700">
-              {meal.nutrition.protein}g protein
-            </Badge>
-            <Badge variant="secondary" className="bg-gray-100 text-gray-700">
-              {meal.nutrition.carbs}g carbs
-            </Badge>
-            <Badge variant="secondary" className="bg-gray-100 text-gray-700">
-              {meal.nutrition.fat}g fat
-            </Badge>
+          <div className="grid grid-cols-4 gap-2 mb-4">
+            <NutritionItem
+              label="Calories"
+              value={Math.round(nutrition.calories)}
+              unit="kcal"
+            />
+            <NutritionItem
+              label="Protein"
+              value={Math.round(nutrition.protein)}
+              unit="g"
+            />
+            <NutritionItem
+              label="Carbs"
+              value={Math.round(nutrition.carbs)}
+              unit="g"
+            />
+            <NutritionItem
+              label="Fat"
+              value={Math.round(nutrition.fat)}
+              unit="g"
+            />
           </div>
         </div>
 
@@ -130,7 +151,7 @@ export function MealRecommendationCard({
                 className="text-indigo-600 cursor-pointer flex items-center text-xs"
                 onClick={() => setExpanded(true)}
               >
-                <ChevronDownIcon className="w-3 h-3 mr-1" />
+                <ChevronDown className="w-3 h-3 mr-1" />
                 Show {meal.ingredients.length - 3} more ingredients
               </li>
             )}
@@ -139,7 +160,7 @@ export function MealRecommendationCard({
                 className="text-indigo-600 cursor-pointer flex items-center text-xs"
                 onClick={() => setExpanded(false)}
               >
-                <ChevronUpIcon className="w-3 h-3 mr-1" />
+                <ChevronUp className="w-3 h-3 mr-1" />
                 Show less
               </li>
             )}
@@ -158,11 +179,15 @@ export function MealRecommendationCard({
       <CardFooter className="pt-2 pb-3 flex-shrink-0">
         <Button
           onClick={handleSave}
-          disabled={saving}
+          disabled={isSaving}
           className="w-full bg-indigo-600 hover:bg-indigo-700 text-white"
         >
-          <SaveIcon className="w-4 h-4 mr-2" />
-          {saving ? "Saving..." : "Save to My Meals"}
+          {isSaving ? (
+            <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+          ) : (
+            <Save className="w-4 h-4 mr-2" />
+          )}
+          {isSaving ? "Saving..." : "Save to My Meals"}
         </Button>
       </CardFooter>
     </Card>

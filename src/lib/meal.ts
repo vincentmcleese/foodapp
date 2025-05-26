@@ -1,4 +1,9 @@
-import { MealIngredient, FridgeItem } from "./api-services";
+import {
+  MealIngredient,
+  FridgeItem,
+  Meal,
+  RecommendationRequest,
+} from "./api-services";
 
 /**
  * Calculate nutrition totals from a list of meal ingredients
@@ -123,4 +128,63 @@ export function formatTime(minutes: number): string {
   }
 
   return `${hours}h ${remainingMinutes}m`;
+}
+
+/**
+ * Apply filters and sorting to a list of meals
+ * @param meals List of meals to filter and sort
+ * @param options Filter and sort options
+ * @param fridgeItems Optional list of fridge items for percentage calculation
+ * @returns Filtered and sorted list of meals
+ */
+export function applyMealFilters(
+  meals: Meal[],
+  options: RecommendationRequest,
+  fridgeItems?: FridgeItem[]
+): Meal[] {
+  if (!meals || !meals.length) return [];
+
+  let filtered = [...meals];
+
+  // Filter by health principles
+  if (options.healthPrinciples && options.healthPrinciples.length > 0) {
+    filtered = filtered.filter((meal) =>
+      meal.healthPrinciples?.some((hp) =>
+        options.healthPrinciples?.includes(hp.id)
+      )
+    );
+  }
+
+  // Apply sorting
+  if (options.sortBy) {
+    if (options.sortBy === "fridgePercentage" && fridgeItems?.length) {
+      // First calculate percentages for all meals
+      const mealsWithPercentages = filtered.map((meal) => {
+        let percentage = 0;
+        if (meal.meal_ingredient?.length) {
+          percentage = calculateFridgePercentage(
+            meal.meal_ingredient,
+            fridgeItems
+          );
+        }
+        return { meal, percentage };
+      });
+
+      // Sort by percentage (highest first)
+      mealsWithPercentages.sort((a, b) => b.percentage - a.percentage);
+
+      // Return just the meals in sorted order
+      filtered = mealsWithPercentages.map((item) => item.meal);
+    } else if (options.sortBy === "name") {
+      filtered.sort((a, b) => a.name.localeCompare(b.name));
+    } else if (options.sortBy === "created") {
+      filtered.sort(
+        (a, b) =>
+          new Date(b.created_at || 0).getTime() -
+          new Date(a.created_at || 0).getTime()
+      );
+    }
+  }
+
+  return filtered;
 }

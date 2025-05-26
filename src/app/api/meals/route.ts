@@ -3,69 +3,91 @@ import { supabaseAdmin } from "@/lib/supabase";
 import { calculateNutrition } from "@/lib/meal";
 
 // GET all meals
-export async function GET() {
+export async function GET(request: Request) {
   try {
-    const { data, error } = await supabaseAdmin.from("meal").select(`
+    // Parse query parameters
+    const url = new URL(request.url);
+    const healthPrinciples = url.searchParams.getAll("healthPrinciples");
+    const sortBy = url.searchParams.get("sortBy");
+
+    // Start building the query
+    let query = supabaseAdmin.from("meal").select(`
+      *,
+      meal_ingredient!meal_id (
         *,
-        meal_ingredient!meal_id (
-          *,
-          ingredient:ingredient_id (id, name, usda_fdc_id, nutrition)
+        ingredient (
+          id,
+          name,
+          ingredient_type,
+          nutrition
         )
-      `);
+      ),
+      meal_health_principle!meal_id (
+        health_principle_id,
+        health_principle (
+          id,
+          name,
+          description,
+          enabled
+        )
+      )
+    `);
+
+    // Filter by health principles if specified
+    if (healthPrinciples && healthPrinciples.length > 0) {
+      // We need to join with meal_health_principle and filter
+      query = query.in(
+        "meal_health_principle.health_principle_id",
+        healthPrinciples
+      );
+    }
+
+    // Execute the query
+    const { data: meals, error } = await query;
 
     if (error) {
       console.error("Error fetching meals:", error);
-      throw error;
+      return NextResponse.json(
+        { error: "Failed to fetch meals" },
+        { status: 500 }
+      );
     }
 
-    // Get all meal ratings
-    const { data: allRatings, error: ratingsError } = await supabaseAdmin
-      .from("meal_rating")
-      .select("*");
+    // Process meals to include proper nutrition data and health principles
+    const processedMeals = meals.map((meal) => {
+      // Process meal ingredients
+      const mealIngredients = meal.meal_ingredient || [];
 
-    if (ratingsError) {
-      console.error("Error fetching meal ratings:", ratingsError);
-      // Continue without ratings rather than failing the request
-    }
+      // Calculate nutrition based on ingredients
+      const nutrition = calculateNutrition(mealIngredients);
 
-    // Group ratings by meal_id
-    const ratingsByMeal = (allRatings || []).reduce((acc, rating) => {
-      if (!acc[rating.meal_id]) {
-        acc[rating.meal_id] = [];
-      }
-      acc[rating.meal_id].push(rating);
-      return acc;
-    }, {} as Record<string, any[]>);
+      // Format health principles
+      const healthPrinciples = (meal.meal_health_principle || []).map(
+        (hp: any) => hp.health_principle
+      );
 
-    // Transform data and calculate nutrition
-    const meals = data.map((meal) => {
-      const ingredients = meal.meal_ingredient || [];
-      const nutrition = calculateNutrition(ingredients);
-
-      // Calculate rating summary if available
-      const mealRatings = ratingsByMeal[meal.id] || [];
-      const likes = mealRatings.filter(
-        (r: { rating: boolean }) => r.rating === true
-      ).length;
-      const dislikes = mealRatings.filter(
-        (r: { rating: boolean }) => r.rating === false
-      ).length;
-
-      const ratings = {
-        likes,
-        dislikes,
-        total: mealRatings.length,
-      };
-
+      // Return processed meal data
       return {
         ...meal,
-        ingredients: ingredients,
-        nutrition,
-        ratings,
+        nutrition: meal.nutrition || nutrition,
+        healthPrinciples: healthPrinciples,
+        meal_health_principle: undefined, // Remove this from the response
       };
     });
 
-    return NextResponse.json(meals);
+    // Handle sorting
+    if (sortBy === "name") {
+      processedMeals.sort((a, b) => a.name.localeCompare(b.name));
+    } else if (sortBy === "created") {
+      processedMeals.sort(
+        (a, b) =>
+          new Date(b.created_at || 0).getTime() -
+          new Date(a.created_at || 0).getTime()
+      );
+    }
+    // Note: fridgePercentage sorting is done client-side since it needs fridge data
+
+    return NextResponse.json(processedMeals);
   } catch (error) {
     console.error("Error fetching meals:", error);
     return NextResponse.json(
@@ -81,7 +103,7 @@ export async function POST(request: Request) {
     const body = await request.json();
 
     // Extract ingredients to add them separately
-    const { ingredients, ...mealData } = body;
+    const { ingredients, healthPrinciples, ...mealData } = body;
 
     // First, insert the meal
     const { data: meal, error: mealError } = await supabaseAdmin
@@ -124,6 +146,28 @@ export async function POST(request: Request) {
       mealIngredients = insertedIngredients;
     }
 
+    // If there are health principles, add them
+    if (healthPrinciples && healthPrinciples.length > 0) {
+      const healthPrinciplesToInsert = healthPrinciples.map(
+        (principleId: string) => ({
+          meal_id: meal.id,
+          health_principle_id: principleId,
+        })
+      );
+
+      const { error: healthPrinciplesError } = await supabaseAdmin
+        .from("meal_health_principle")
+        .insert(healthPrinciplesToInsert);
+
+      if (healthPrinciplesError) {
+        console.error(
+          "Error adding health principles to meal:",
+          healthPrinciplesError
+        );
+        // We don't throw here as the meal was successfully created
+      }
+    }
+
     // Calculate nutrition based on ingredients
     const nutrition = calculateNutrition(mealIngredients);
 
@@ -132,6 +176,7 @@ export async function POST(request: Request) {
       ...meal,
       ingredients: mealIngredients,
       nutrition,
+      healthPrinciples: healthPrinciples || [],
     });
   } catch (error) {
     console.error("Error creating meal:", error);
